@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=@LIB_INSTALL_DIR@
+includedir=@INCLUDE_INSTALL_DIR@
+
+Name: @PC_NAME@
+Description: Development files for a development of a service based on AI and edge computing system
+Version: @VERSION@
+Requires:
+Libs:
+Cflags: -I${includedir}

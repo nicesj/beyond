@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package peer_nn;
+
+message ExchangeKeyRequest {
+    bytes key = 1;
+}
+
+message ExchangeKeyResponse {
+    int32 status = 1;
+    string id = 2;
+}
+
+message Configuration {
+    int32 input_type = 1;
+    string preprocessing = 2;
+    string postprocessing = 3;
+    string framework = 4;
+    string accel = 5;
+}
+
+message Model {
+    string filename = 1;
+}
+
+message ModelFile {
+    bytes Content = 1;
+}
+
+message Response {
+    int32 status = 1;
+}
+
+message PreparedResponse {
+    int32 status = 1;
+    int32 request_port = 2;
+    int32 response_port = 3;
+}
+
+enum TensorType {
+    INT8 = 0;
+    INT16 = 1;
+    INT32 = 2;
+    UINT8 = 16;
+    UINT16 = 17;
+    UINT32 = 18;
+    FLOAT16 = 33;
+    FLOAT32 = 34;
+    UNSUPPORTED = 255;
+}
+
+message Dimensions {
+    repeated int32 data = 1;
+}
+
+message TensorInfo {
+    TensorType type = 1;
+    int32 size = 2;
+    string name = 3;
+    Dimensions dims = 4;
+}
+
+message TensorInfos {
+    int32 status = 1;
+    repeated TensorInfo info = 2;
+}
+
+message Empty {
+}
+
+message DeviceInfo {
+    string name = 1;
+}
+
+message RuntimeInfo {
+    string name = 1;
+    repeated DeviceInfo devices = 2;
+}
+
+message Info {
+    uint64 free_memory = 1;
+    uint64 free_storage = 2;
+    repeated RuntimeInfo runtimes = 3;
+}
+
+service RPC {
+    rpc Configure(Configuration) returns (Response) {}
+
+    rpc ExchangeKey(ExchangeKeyRequest) returns (ExchangeKeyResponse) {}
+
+    rpc LoadModel(Model) returns (Response) {}
+    rpc UploadModel(stream ModelFile) returns (Response) {}
+
+    rpc GetInputTensorInfo(Empty) returns (TensorInfos) {}
+    rpc SetInputTensorInfo(TensorInfos) returns (Response) {}
+
+    rpc GetOutputTensorInfo(Empty) returns (TensorInfos) {}
+    rpc SetOutputTensorInfo(TensorInfos) returns (Response) {}
+
+    rpc Prepare(Empty) returns (PreparedResponse) {}
+    rpc Stop(Empty) returns (Response) {}
+
+    rpc GetInfo(Empty) returns (Info) {}
+}

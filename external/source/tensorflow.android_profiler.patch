@@ -1,0 +1,15 @@
+diff -urN tensorflow.new/tensorflow/lite/tools/make/Makefile tensorflow/tensorflow/lite/tools/make/Makefile
+--- tensorflow.new/tensorflow/lite/tools/make/Makefile	2020-09-17 15:41:44.893779801 +0900
++++ tensorflow/tensorflow/lite/tools/make/Makefile	2020-09-17 15:48:35.745785138 +0900
+@@ -110,6 +110,11 @@
+ 	tensorflow/lite/profiling/platform_profiler.cc \
+ 	tensorflow/lite/profiling/time.cc
+
++ifeq (${TARGET},android)
++PROFILER_SRCS += \
++	tensorflow/lite/profiling/atrace_profiler.cc
++endif
++
+ PROFILE_SUMMARIZER_SRCS := \
+ 	tensorflow/lite/profiling/profile_summarizer.cc \
+ 	tensorflow/lite/profiling/profile_summary_formatter.cc \

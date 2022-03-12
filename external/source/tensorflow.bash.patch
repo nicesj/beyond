@@ -1,0 +1,9 @@
+diff -urN tensorflow/tensorflow/lite/tools/make/build_lib.sh tensorflow.new/tensorflow/lite/tools/make/build_lib.sh
+--- tensorflow/tensorflow/lite/tools/make/build_lib.sh	2020-05-28 16:28:19.000000000 +0900
++++ tensorflow.new/tensorflow/lite/tools/make/build_lib.sh	2020-07-07 13:53:33.571954695 +0900
+@@ -20,5 +20,5 @@
+ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ TENSORFLOW_DIR="${SCRIPT_DIR}/../../../.."
+
+-make -j 4 -C "${TENSORFLOW_DIR}" -f tensorflow/lite/tools/make/Makefile $@
++make -j 4 -C "${TENSORFLOW_DIR}" -f tensorflow/lite/tools/make/Makefile "$@"

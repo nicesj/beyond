@@ -1,0 +1,64 @@
+diff -urN jsoncpp-1.9.4/CMakeLists.txt ../third_party/jsoncpp/CMakeLists.txt
+--- jsoncpp-1.9.4/CMakeLists.txt	2020-09-26 02:19:16.000000000 +0000
++++ ../third_party/jsoncpp/CMakeLists.txt	2021-05-18 07:49:42.086406405 +0000
+@@ -89,10 +89,10 @@
+ # Adhere to GNU filesystem layout conventions
+ include(GNUInstallDirs)
+
+-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Archive output dir.")
+-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Library output dir.")
+-set(CMAKE_PDB_OUTPUT_DIRECTORY     "${CMAKE_BINARY_DIR}/bin" CACHE PATH "PDB (MSVC debug symbol)output dir.")
+-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "Executable/dll output dir.")
++#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Archive output dir.")
++#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Library output dir.")
++#set(CMAKE_PDB_OUTPUT_DIRECTORY     "${CMAKE_BINARY_DIR}/bin" CACHE PATH "PDB (MSVC debug symbol)output dir.")
++#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "Executable/dll output dir.")
+
+ set(JSONCPP_USE_SECURE_MEMORY "0" CACHE STRING "-D...=1 to use memory-wiping allocator for STL")
+
+diff -urN jsoncpp-1.9.4/src/lib_json/CMakeLists.txt ../third_party/jsoncpp/src/lib_json/CMakeLists.txt
+--- jsoncpp-1.9.4/src/lib_json/CMakeLists.txt	2020-09-26 02:19:16.000000000 +0000
++++ ../third_party/jsoncpp/src/lib_json/CMakeLists.txt	2021-05-18 07:49:20.930406677 +0000
+@@ -137,7 +137,7 @@
+         set_target_properties(${SHARED_LIB} PROPERTIES INSTALL_RPATH "@loader_path/.")
+     endif()
+
+-    target_compile_features(${SHARED_LIB} PUBLIC ${REQUIRED_FEATURES})
++    # target_compile_features(${SHARED_LIB} PUBLIC ${REQUIRED_FEATURES})
+
+     if(NOT CMAKE_VERSION VERSION_LESS 2.8.11)
+         target_include_directories(${SHARED_LIB} PUBLIC
+@@ -169,7 +169,7 @@
+         set_target_properties(${STATIC_LIB} PROPERTIES INSTALL_RPATH "@loader_path/.")
+     endif()
+
+-    target_compile_features(${STATIC_LIB} PUBLIC ${REQUIRED_FEATURES})
++    # target_compile_features(${STATIC_LIB} PUBLIC ${REQUIRED_FEATURES})
+
+     if(NOT CMAKE_VERSION VERSION_LESS 2.8.11)
+         target_include_directories(${STATIC_LIB} PUBLIC
+@@ -198,7 +198,7 @@
+         set_target_properties(${OBJECT_LIB} PROPERTIES INSTALL_RPATH "@loader_path/.")
+     endif()
+
+-    target_compile_features(${OBJECT_LIB} PUBLIC ${REQUIRED_FEATURES})
++    # target_compile_features(${OBJECT_LIB} PUBLIC ${REQUIRED_FEATURES})
+
+     if(NOT CMAKE_VERSION VERSION_LESS 2.8.11)
+         target_include_directories(${OBJECT_LIB} PUBLIC
+@@ -211,10 +211,10 @@
+     list(APPEND CMAKE_TARGETS ${OBJECT_LIB})
+ endif()
+
+-install(TARGETS ${CMAKE_TARGETS} ${INSTALL_EXPORT}
+-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-    OBJECTS DESTINATION ${CMAKE_INSTALL_LIBDIR}
+-)
++#install(TARGETS ${CMAKE_TARGETS} ${INSTALL_EXPORT}
++#    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++#    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++#    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++#    OBJECTS DESTINATION ${CMAKE_INSTALL_LIBDIR}
++#)

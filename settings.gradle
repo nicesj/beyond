@@ -1,0 +1,9 @@
+rootProject.name = "beyond"
+
+include("libbeyond")
+include("libbeyond-android")
+include("libbeyond-authenticator_ssl")
+
+for (project in rootProject.children) {
+    project.projectDir = file("subprojects/${project.name}")
+}

@@ -1,0 +1,2 @@
+appsrc name=%s ! %s ! queue leaky=2 max-size-buffers=1 ! gdppay ! tcpclientsink host=%s port=%d
+tcpclientsrc host=%s port=%d ! gdpdepay ! other/flatbuf-tensor,framerate=0/1 ! tensor_converter ! tensor_sink name=%s

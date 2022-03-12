@@ -1,0 +1,21 @@
+diff -urN flatbuffers/CMakeLists.txt flatbuffers.new/CMakeLists.txt
+--- flatbuffers/CMakeLists.txt	2020-07-06 14:33:30.646804992 +0900
++++ flatbuffers.new/CMakeLists.txt	2020-07-07 07:09:26.591622840 +0900
+@@ -225,7 +225,7 @@
+       "${CMAKE_CXX_FLAGS} -std=gnu++11")
+   else(CYGWIN)
+     set(CMAKE_CXX_FLAGS
+-      "${CMAKE_CXX_FLAGS} -std=c++0x")
++      "${CMAKE_CXX_FLAGS} -std=c++11")
+   endif(CYGWIN)
+   set(CMAKE_CXX_FLAGS
+     "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wextra -Werror=shadow")
+@@ -246,7 +246,7 @@
+ 
+ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+   set(CMAKE_CXX_FLAGS
+-      "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -pedantic -Werror -Wextra -Wno-unused-parameter")
++      "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -pedantic -Werror -Wextra -Wno-unused-parameter")
+   set(FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wold-style-cast")
+   if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.8)
+     list(APPEND FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wimplicit-fallthrough" "-Wextra-semi" "-Werror=unused-private-field") # enable warning
