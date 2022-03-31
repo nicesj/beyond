@@ -11,11 +11,13 @@
 # openssl
 
   The openssl is used by the libbeyond-authenticator\_ssl module
+  https://github.com/openssl/openssl/archive/refs/heads/OpenSSL_1_1_1-stable.zip
 
 
 # mDNSResponder
 
   The mDNSResponder is used by the libbeyond-discovery\_dns\_sd module
+  https://android.googlesource.com/platform/external/mdnsresponder/+archive/refs/heads/master.tar.gz
 
 
 # googletest

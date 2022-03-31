@@ -51,8 +51,10 @@ ADD_SUBDIRECTORY(${PROJECT_ROOT_DIR}/subprojects/libbeyond-authenticator_ssl ${C
 # Requires DNSSD
 ADD_SUBDIRECTORY(${PROJECT_ROOT_DIR}/subprojects/libbeyond-discovery_dns_sd ${CMAKE_BINARY_DIR}/subprojects/libbeyond-discovery_dns_sd)
 
-# Requiers gstreamer, prtobuf, grpc, glib
-ADD_SUBDIRECTORY(${PROJECT_ROOT_DIR}/subprojects/libbeyond-peer_nn ${CMAKE_BINARY_DIR}/subprojects/libbeyond-peer_nn)
+IF(NOT DISABLE_PEER_NN)
+    # Requiers gstreamer, prtobuf, grpc, glib
+    ADD_SUBDIRECTORY(${PROJECT_ROOT_DIR}/subprojects/libbeyond-peer_nn ${CMAKE_BINARY_DIR}/subprojects/libbeyond-peer_nn)
+ENDIF(NOT DISABLE_PEER_NN)
 
 IF(NOT DISABLE_TOOL)
     # Requires opencv

@@ -97,8 +97,7 @@ int main(void)
 
             argv = static_cast<char **>(calloc(argc, sizeof(char *)));
             if (argv == nullptr) {
-                char errMsg[80] = { '\0' };
-                fprintf(stderr, "calloc: %s\n", strerror_r(errno, errMsg, sizeof(errMsg)));
+                ErrPrintCode(errno, "calloc");
                 _exit(ENOMEM);
             }
 
@@ -145,8 +144,7 @@ int main(void)
                 input = static_cast<beyond_tensor *>(calloc(input_size, sizeof(beyond_tensor)));
                 if (input == nullptr) {
                     int ret = errno;
-                    char errMsg[80] = { '\0' };
-                    fprintf(stderr, "calloc: %s\n", strerror_r(errno, errMsg, sizeof(errMsg)));
+                    ErrPrintCode(errno, "calloc");
                     _exit(ret);
                 }
                 break;
@@ -165,19 +163,16 @@ int main(void)
 
                         input[input_idx].data = malloc(input[input_idx].size);
                         if (input[input_idx].data == nullptr) {
-                            char errMsg[80] = { '\0' };
-                            fprintf(stderr, "malloc: %s\n", strerror_r(errno, errMsg, sizeof(errMsg)));
+                            ErrPrintCode(errno, "malloc");
                         } else {
                             if (fread(input[input_idx].data, input[input_idx].size, 1, fp) != 1) {
-                                char errMsg[80] = { '\0' };
-                                fprintf(stderr, "fread: %s\n", strerror_r(ferror(fp), errMsg, sizeof(errMsg)));
+                                ErrPrintCode(errno, "fread");
                                 _exit(EIO);
                             }
                         }
 
                         if (fclose(fp) < 0) {
-                            char errMsg[80] = { '\0' };
-                            fprintf(stderr, "Unable to close the file pointer: %s\n", strerror_r(errno, errMsg, sizeof(errMsg)));
+                            ErrPrintCode(errno, "Unable to close the file pointer");
                         }
                     }
                 }

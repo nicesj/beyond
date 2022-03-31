@@ -3,44 +3,70 @@ SET(CMAKE_SKIP_BUILD_RPATH true)
 
 PROJECT(openssl VERSION 1.1.1 LANGUAGES CXX)
 
-IF(ANDROID_ABI STREQUAL x86_64)
-    SET(ANDROID_TARGET_ARCH x86_64)
-ENDIF(ANDROID_ABI STREQUAL x86_64)
-
-IF(ANDROID_ABI STREQUAL x86)
-    SET(ANDROID_TARGET_ARCH x86)
-ENDIF(ANDROID_ABI STREQUAL x86)
-
-IF(ANDROID_ABI STREQUAL armeabi-v7a)
-    SET(ANDROID_TARGET_ARCH arm)
-ENDIF(ANDROID_ABI STREQUAL armeabi-v7a)
-
-IF(ANDROID_ABI STREQUAL arm64-v8a)
-    SET(ANDROID_TARGET_ARCH arm64)
-ENDIF(ANDROID_ABI STREQUAL arm64-v8a)
-
 IF (CMAKE_BUILD_TYPE MATCHES Debug)
     SET(BUILD_OPTION -d)
 ENDIF (CMAKE_BUILD_TYPE MATCHES Debug)
 
-ADD_CUSTOM_COMMAND(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lib/libssl.a;${CMAKE_CURRENT_BINARY_DIR}/lib/libcrypto.a
-    COMMAND ${CMAKE_COMMAND} -E env
-        ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
-        PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
-        test ! -e Makefile || make clean
-    COMMAND ${CMAKE_COMMAND} -E env
-        ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
-        PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
-        ./Configure android-${ANDROID_TARGET_ARCH} no-tests -D__ANDROID_ABI__=${ANDROID_NATIVE_API_LEVEL} --prefix=${CMAKE_CURRENT_BINARY_DIR} --openssldir=${CMAKE_CURRENT_BINARY_DIR}/etc ${BUILD_OPTION}
-    COMMAND ${CMAKE_COMMAND} -E env
-        ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
-        PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
-        make install
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Build the openssl"
-    VERBATIM
-)
+IF(PLATFORM STREQUAL "android")
+    IF(ANDROID_ABI STREQUAL x86_64)
+        SET(ANDROID_TARGET_ARCH x86_64)
+    ENDIF(ANDROID_ABI STREQUAL x86_64)
+
+    IF(ANDROID_ABI STREQUAL x86)
+        SET(ANDROID_TARGET_ARCH x86)
+    ENDIF(ANDROID_ABI STREQUAL x86)
+
+    IF(ANDROID_ABI STREQUAL armeabi-v7a)
+        SET(ANDROID_TARGET_ARCH arm)
+    ENDIF(ANDROID_ABI STREQUAL armeabi-v7a)
+
+    IF(ANDROID_ABI STREQUAL arm64-v8a)
+        SET(ANDROID_TARGET_ARCH arm64)
+    ENDIF(ANDROID_ABI STREQUAL arm64-v8a)
+
+    ADD_CUSTOM_COMMAND(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lib/libssl.a;${CMAKE_CURRENT_BINARY_DIR}/lib/libcrypto.a
+        COMMAND ${CMAKE_COMMAND} -E env
+            ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
+            PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
+            test ! -e Makefile || make clean
+        COMMAND ${CMAKE_COMMAND} -E env
+            ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
+            PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
+            ./Configure android-${ANDROID_TARGET_ARCH} no-tests -D__ANDROID_ABI__=${ANDROID_NATIVE_API_LEVEL} --prefix=${CMAKE_CURRENT_BINARY_DIR} --openssldir=${CMAKE_CURRENT_BINARY_DIR}/etc ${BUILD_OPTION}
+        COMMAND ${CMAKE_COMMAND} -E env
+            ANDROID_NDK_HOME=${ANDROID_NDK_HOME}
+            PATH=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:/usr/bin:/bin
+            make install
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Build the openssl"
+        VERBATIM
+    )
+ELSE(PLATFORM STREQUAL "android")
+    STRING(TOLOWER ${CMAKE_HOST_SYSTEM_NAME} HOST_NAME)
+    IF(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+        IF(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+            SET(HOST_NAME "${HOST_NAME}64-x86_64-cc")
+        ELSE(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+            SET(HOST_NAME "${HOST_NAME}-x86-cc")
+        ENDIF(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    ELSE(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+        SET(HOST_NAME "${HOST_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    ENDIF(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+
+    ADD_CUSTOM_COMMAND(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lib/libssl.a;${CMAKE_CURRENT_BINARY_DIR}/lib/libcrypto.a
+        COMMAND ${CMAKE_COMMAND} -E env
+            test ! -e Makefile || make clean
+        COMMAND ${CMAKE_COMMAND} -E env
+            ./Configure ${HOST_NAME} no-tests --prefix=${CMAKE_CURRENT_BINARY_DIR} --openssldir=${CMAKE_CURRENT_BINARY_DIR}/etc ${BUILD_OPTION}
+        COMMAND ${CMAKE_COMMAND} -E env
+            make install
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Build the openssl"
+        VERBATIM
+    )
+ENDIF(PLATFORM STREQUAL "android")
 
 ADD_CUSTOM_TARGET(
     ${PROJECT_NAME}_build ALL
