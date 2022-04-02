@@ -1,7 +1,8 @@
-prefix=@PREFIX@
-includedir=@INCLUDE_INSTALL_DIR@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=@CMAKE_INSTALL_LIBDIR@
+includedir=@CMAKE_INSTALL_INCLUDEDIR@
 
-Name: @PC_NAME@
+Name: @PROJECT_NAME@
 Description: Development files for a development of a service based on AI and edge computing system
 Version: @VERSION@
 Requires:

@@ -29,7 +29,6 @@ android {
                 arguments '-DANDROID_STL=c++_shared'
                 arguments '-DENABLE_GTEST=OFF'
                 arguments '-DPLATFORM_PACKAGE=OFF'
-                arguments '-DSYSCONF_INSTALL_DIR=/etc', '-DLIB_INSTALL_DIR=/usr/lib', '-DINCLUDE_INSTALL_DIR=/usr/include', '-DPKGCONFIG_DIR=/usr/lib/pkgconfig', '-DPREFIX=/usr'
                 arguments '-DNAME=beyond', '-DVERSION=0.0.1'
                 arguments "-DREVISION=${getGitHash()}"
                 arguments '-DPLATFORM=android'

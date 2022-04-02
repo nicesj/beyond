@@ -34,7 +34,6 @@ android {
                 arguments '-DUSE_PREBUILT=OFF'
                 arguments '-DPREBUILT_PATH=""'
                 arguments '-DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON'
-                arguments '-DSYSCONF_INSTALL_DIR=/etc', '-DLIB_INSTALL_DIR=/usr/lib', '-DINCLUDE_INSTALL_DIR=/usr/include', '-DDATA_INSTALL_DIR=/usr/share', '-DPKGCONFIG_DIR=/usr/lib/pkgconfig', '-DPREFIX=/usr'
                 arguments '-DNAME=beyond', '-DVERSION=0.0.1'
                 arguments "-DREVISION=${getGitHash()}"
                 arguments '-DPLATFORM=android'
