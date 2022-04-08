@@ -1,8 +1,27 @@
 #!/usr/bin/make -f
 export DH_VERBOSE=1
-
-override_dh_auto_configure:
-	dh_auto_configure --builddirectory=beyond -- -DDISABLE_PEER_NN=ON -DDISABLE_TOOL=ON
+export BUILDDIR=build
 
 %:
-	dh $@ --sourcedirectory=beyond
+	dh $@ --parallel
+
+override_dh_auto_clean:
+	rm -rf ${BUILDDIR}
+
+override_dh_clean:
+	dh_clean $@
+
+override_dh_auto_configure:
+	mkdir -p ${BUILDDIR}; \
+	cd ${BUILDDIR}; \
+	cmake .. -DNAME=beyond -DDISABLE_PEER_NN=ON -DDISABLE_TOOL=ON -DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_auto_build:
+	make -C ${BUILDDIR}
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/tmp make -C ${BUILDDIR} install
+
+override_dh_install:
+	dh_install --sourcedir=debian/tmp
+	dh_missing --list-missing

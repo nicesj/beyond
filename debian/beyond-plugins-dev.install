@@ -1,0 +1,4 @@
+/usr/include/beyond/plugin/*.h
+/usr/lib/*/pkgconfig/beyond-authenticator_ssl.pc
+/usr/lib/*/pkgconfig/beyond-discovery_dns_sd.pc
+/usr/lib/*/pkgconfig/beyond-runtime_tflite.pc

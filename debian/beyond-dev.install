@@ -1,0 +1,6 @@
+/usr/lib/*/pkgconfig/beyond-common.pc
+/usr/lib/*/pkgconfig/beyond-generic-capi.pc
+/usr/lib/*/pkgconfig/beyond.pc
+/usr/include/beyond/*.h
+/usr/include/beyond/private/*.h
+/usr/include/beyond/platform/*.h

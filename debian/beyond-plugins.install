@@ -1,0 +1,3 @@
+/usr/lib/*/libbeyond-authenticator_ssl.so
+/usr/lib/*/libbeyond-discovery_dns_sd.so
+/usr/lib/*/libbeyond-runtime_tflite.so
