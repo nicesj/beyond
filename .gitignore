@@ -59,6 +59,7 @@ debian/beyond-plugins-devel/*
 debian/beyond-tools/*
 debian/beyond-mock-devel/*
 debian/beyond-mock/*
+debian/beyond-plugins-dev/*
 
 # Built application files
 *.apk
