@@ -35,7 +35,7 @@ ResourceInfoCollector::impl::impl(std::string &storagePath)
 void ResourceInfoCollector::impl::collectResourceInfo(beyond_peer_info *info)
 {
     if (info->free_memory <= 0) {
-        struct sysinfo _info;
+        struct sysinfo _info = {0};
         if (sysinfo(&_info) < 0) {
             ErrPrintCode(errno, "sysinfo");
         } else {

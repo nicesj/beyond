@@ -43,4 +43,12 @@ EventLoop *EventLoop::Create(bool thread, bool signal)
     return EventLoop::impl::Create(thread, signal);
 }
 
+beyond::EventLoop::HandlerObject::HandlerObject()
+    : eventObject(nullptr)
+    , type(0)
+    , data(nullptr)
+    , eventHandler(nullptr)
+    , cancelHandler(nullptr)
+{
+}
 } // namespace beyond

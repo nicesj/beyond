@@ -6,15 +6,15 @@ import android.os.Looper;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.samsung.android.beyond.discovery.Discovery;
-import com.samsung.android.beyond.ConfigType;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import com.samsung.android.beyond.module.discovery.DNSSD.DNSSDModule;
 
 public class DiscoveryItemUnitTest {
@@ -30,18 +30,13 @@ public class DiscoveryItemUnitTest {
     @Test
     public void testSetItem() {
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        try (Discovery server = new Discovery(args_server)) {
+        try (Discovery server = new Discovery(context, args_server)) {
             assertNotNull(server);
-            int ret = server.configure(ConfigType.CONTEXT_ANDROID, context);
-            assertEquals(0, ret);
-
-            ret = server.activate();
-            assertEquals(0, ret);
+            assertTrue(server.activate());
 
             String key = "key";
             byte[] value = "hello".getBytes();
-            ret = server.setItem(key, value);
-            assertEquals(0, ret);
+            assertTrue(server.setItem(key, value));
 
             server.deactivate();
         }
@@ -50,44 +45,39 @@ public class DiscoveryItemUnitTest {
     @Test
     public void testRemoveItem() {
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        try (Discovery server = new Discovery(args_server)) {
+        try (Discovery server = new Discovery(context, args_server)) {
             assertNotNull(server);
-            int ret = server.configure(ConfigType.CONTEXT_ANDROID, context);
-            assertEquals(0, ret);
-            ret = server.activate();
-            assertEquals(0, ret);
+            assertTrue(server.activate());
             String key = "key";
             byte[] value = "hello".getBytes();
-            ret = server.setItem(key, value);
-            assertEquals(0, ret);
+            assertTrue(server.setItem(key, value));
 
-            ret = server.removeItem(key);
-            assertEquals(0, ret);
+            assertTrue(server.removeItem(key));
 
             server.deactivate();
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testSetItemAfterClosed() {
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        Discovery server = new Discovery(args_server);
+        Discovery server = new Discovery(context, args_server);
         assertNotNull(server);
         server.close();
 
         String key = "key";
         byte[] value = "hello".getBytes();
-        server.setItem(key, value);
+        assertFalse(server.setItem(key, value));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testRemoveItemAfterClosed() {
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        Discovery server = new Discovery(args_server);
+        Discovery server = new Discovery(context, args_server);
         assertNotNull(server);
         server.close();
 
         String key = "key";
-        server.removeItem(key);
+        assertFalse(server.removeItem(key));
     }
 }

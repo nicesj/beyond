@@ -16,11 +16,34 @@
 
 package com.samsung.android.beyond.InferenceUnitTest;
 
-import android.content.Context;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+import static com.samsung.android.beyond.TestUtils.MOBILENET_INPUT_TENSOR_DIMENSIONS;
+import static com.samsung.android.beyond.TestUtils.MOBILENET_INPUT_TENSOR_NUMBER;
+import static com.samsung.android.beyond.TestUtils.MOBILENET_OUTPUT_TENSOR_DIMENSIONS;
+import static com.samsung.android.beyond.TestUtils.MOBILENET_OUTPUT_TENSOR_NUMBER;
+import static com.samsung.android.beyond.TestUtils.TAG;
+import static com.samsung.android.beyond.TestUtils.TEST_ORANGE_IMAGE;
+import static com.samsung.android.beyond.TestUtils.TEST_SERVER_IP;
+import static com.samsung.android.beyond.TestUtils.TEST_SERVER_PORT;
+import static com.samsung.android.beyond.TestUtils.TEST_UINT8_MODEL_NAME;
+import static com.samsung.android.beyond.TestUtils.getModelAbsolutePath;
+import static com.samsung.android.beyond.TestUtils.getOrangeRGBImage;
+import static com.samsung.android.beyond.TestUtils.organizeLabelMap;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.os.Looper;
+import android.util.Log;
+
+import com.samsung.android.beyond.EventListener;
+import com.samsung.android.beyond.EventObject;
 import com.samsung.android.beyond.inference.InferenceHandler;
 import com.samsung.android.beyond.inference.InferenceMode;
 import com.samsung.android.beyond.inference.InferenceModuleFactory;
+import com.samsung.android.beyond.inference.TensorOutputCallback;
 import com.samsung.android.beyond.inference.Peer;
 import com.samsung.android.beyond.inference.PeerInfo;
 import com.samsung.android.beyond.inference.tensor.Tensor;
@@ -30,27 +53,12 @@ import com.samsung.android.beyond.inference.tensor.TensorSet;
 import com.samsung.android.beyond.module.peer.NN.NNModule;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
-import static com.samsung.android.beyond.TestUtils.MOBILENET_INPUT_TENSOR_DIMENSIONS;
-import static com.samsung.android.beyond.TestUtils.MOBILENET_INPUT_TENSOR_NUMBER;
-import static com.samsung.android.beyond.TestUtils.TEST_ORANGE_IMAGE;
-import static com.samsung.android.beyond.TestUtils.TEST_SERVER_IP;
-import static com.samsung.android.beyond.TestUtils.TEST_SERVER_PORT;
-import static com.samsung.android.beyond.TestUtils.TEST_UINT8_MODEL_NAME;
-import static com.samsung.android.beyond.TestUtils.getModelAbsolutePath;
-import static com.samsung.android.beyond.TestUtils.getOrangeRGBImage;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-public class InferenceHandlerUnitTest {
+public class InferenceAsyncTest {
 
     private static Context context;
 
@@ -69,10 +77,16 @@ public class InferenceHandlerUnitTest {
         context = getInstrumentation().getContext();
         modelAbsolutePath = getModelAbsolutePath(context, TEST_UINT8_MODEL_NAME);
         getOrangeRGBImage(context);
+        organizeLabelMap(context);
+
+        if (Looper.myLooper() == null) {
+            Looper.prepare();
+            Log.i(TAG, "ALooper is prepared in this test case.");
+        }
     }
 
-    @Before
-    public void prepareInferenceModules() {
+    @Test
+    public void testAsyncSetOutputCallback() {
         serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
         assertNotNull(serverPeer);
         assertTrue(serverPeer.setInfo());
@@ -81,45 +95,34 @@ public class InferenceHandlerUnitTest {
         inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
         assertNotNull(inferencePeer);
 
+        try {
+            assertTrue(inferencePeer.registerEventListener(new EventListener() {
+                @Override
+                public void onEvent(EventObject eventObject) {
+                    Log.e(TAG, "Peer Event Listener!!");
+                }
+            }));
+        } catch (Exception e) {
+            e.printStackTrace();
+            assert(false);
+        }
+
         assertTrue(inferencePeer.setInfo(new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT)));
 
         inferenceHandler = InferenceModuleFactory.createHandler(InferenceMode.REMOTE);
         assertNotNull(inferenceHandler);
-    }
-
-    @Test
-    public void testAddInferencePeer() {
-        assertTrue(inferenceHandler.addInferencePeer(inferencePeer));   // Cover activateControlChannel()
-    }
-
-    @Test
-    public void testLoadModel() {
-        assertTrue(inferenceHandler.addInferencePeer(inferencePeer));   // Cover activateControlChannel()
-
-        assertTrue(inferenceHandler.loadModel(modelAbsolutePath));
-    }
-
-    @Test
-    public void testPrepare() {
-        assertTrue(inferenceHandler.addInferencePeer(inferencePeer));   // Cover activateControlChannel()
-        assertTrue(inferenceHandler.loadModel(modelAbsolutePath));
-
-        assertTrue(inferenceHandler.prepare());
-    }
-
-    @Test
-    public void testRunInference() {
         assertTrue(inferenceHandler.addInferencePeer(inferencePeer));   // Cover activateControlChannel()
         assertTrue(inferenceHandler.loadModel(modelAbsolutePath));
         assertTrue(inferenceHandler.prepare());
+
         tensorHandler = new TensorHandler(inferenceHandler);
-        TensorInfo[] inputTensorsInfo = tensorHandler.getInputTensorsInfo();
-        assertNotNull(inputTensorsInfo);
-        assertEquals(MOBILENET_INPUT_TENSOR_NUMBER, inputTensorsInfo.length);
-        for (TensorInfo property : inputTensorsInfo) {
+        TensorInfo[] inputTensorsInfoArray = tensorHandler.getInputTensorsInfo();
+        assertNotNull(inputTensorsInfoArray);
+        assertEquals(MOBILENET_INPUT_TENSOR_NUMBER, inputTensorsInfoArray.length);
+        for (TensorInfo property : inputTensorsInfoArray) {
             assertArrayEquals(MOBILENET_INPUT_TENSOR_DIMENSIONS, property.getDimensions());
         }
-        TensorSet inputTensorSet = tensorHandler.allocateTensorSet(inputTensorsInfo);
+        TensorSet inputTensorSet = tensorHandler.allocateTensorSet(inputTensorsInfoArray);
         assertNotNull(inputTensorSet);
         Tensor[] inputTensors = inputTensorSet.getTensors();
         assertEquals(MOBILENET_INPUT_TENSOR_NUMBER, inputTensors.length);
@@ -131,7 +134,34 @@ public class InferenceHandlerUnitTest {
             assertArrayEquals(TEST_ORANGE_IMAGE.array(), byteBuffer.array());
         }
 
+        TensorInfo[] outputTensorInfoArray = tensorHandler.getOutputTensorsInfo();
+        assertNotNull(outputTensorInfoArray);
+        assertEquals(MOBILENET_OUTPUT_TENSOR_NUMBER, outputTensorInfoArray.length);
+        for (TensorInfo tensorInfo : outputTensorInfoArray) {
+            assertArrayEquals(MOBILENET_OUTPUT_TENSOR_DIMENSIONS, tensorInfo.getDimensions());
+        }
+
+        try {
+            assertTrue(inferenceHandler.setOutputCallback(new TensorOutputCallback(tensorHandler, outputTensorInfoArray) {
+                @Override
+                public void onReceivedOutputs() {
+                    TensorSet outputTensors = getOutputTensors();
+                    if (outputTensors == null) {
+                        Log.e(TAG, "Fail to get output results.");
+                        return;
+                    }
+                    assertTrue(TensorHandlerUnitTest.isOrange(outputTensors.getTensors()));
+
+                    Looper.myLooper().quit();
+                }
+            }));
+        } catch (Exception e) {
+            assert(false);
+        }
+
         assertTrue(inferenceHandler.run(inputTensorSet));
+
+        Looper.loop();
     }
 
     @After

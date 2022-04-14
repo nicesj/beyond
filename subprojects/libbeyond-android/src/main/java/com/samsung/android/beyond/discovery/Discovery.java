@@ -17,6 +17,9 @@
 package com.samsung.android.beyond.discovery;
 
 import android.util.Log;
+import android.content.Context;
+
+import androidx.annotation.NonNull;
 
 import com.samsung.android.beyond.EventListener;
 import com.samsung.android.beyond.EventObject;
@@ -28,71 +31,114 @@ public class Discovery extends NativeInstance {
         initialize();
     }
 
+    public static class Info {
+        public String name;
+        public String host;
+        public int port;
+        public String uuid;
+    }
+
     public class DefaultEventObject extends EventObject {
     }
 
-    private static final String TAG = "BEYOND_ANDROID_DISCOVERY";
     private EventListener eventListener;
+    private static final String TAG = "BEYOND_ANDROID_DISCOVERY";
 
-    public Discovery(String[] arguments) {
-        if (arguments == null || arguments.length == 0) {
+    public Discovery(@NonNull Context context, @NonNull String[] arguments) {
+        if (arguments.length == 0) {
             throw new IllegalArgumentException("There is no argument");
         }
-        registerNativeInstance(create(arguments), (Long instance) -> destroy(instance));
+
+        long nativeInstance = create(arguments);
+        if (nativeInstance == 0L) {
+            throw new RuntimeException("The native instance of Discovery is not created successfully.");
+        }
+        registerNativeInstance(nativeInstance, (Long instance) -> destroy(instance));
+
+        if (configure(ConfigType.CONTEXT_ANDROID, context) == false) {
+            throw new RuntimeException("Failed to configure the android context");
+        }
+
         eventListener = null;
     }
 
-    public int activate() {
-        if (instance == 0) {
-            throw new IllegalStateException();
+    public boolean activate() {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
         }
 
-        return activate(instance);
+        return activate(instance) == 0 ? true : false;
     }
 
-    public int deactivate() {
-        if (instance == 0) {
-            throw new IllegalStateException();
+    public boolean deactivate() {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
         }
 
-        return deactivate(instance);
+        return deactivate(instance) == 0 ? true: false;
     }
 
-    public int setItem(String key, byte[] value) {
-        if (instance == 0) {
-            throw new IllegalStateException();
+    public boolean setItem(@NonNull String key, @NonNull byte[] value) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid now.");
+            return false;
         }
 
-        return setItem(instance, key, value);
-    }
-
-    public int removeItem(String key) {
-        if (instance == 0) {
-            throw new IllegalStateException();
+        if (value.length == 0) {
+            Log.e(TAG, "Arguments are invalid.");
+            return false;
         }
 
-        return removeItem(instance, key);
+        return setItem(instance, key, value) == 0 ? true : false;
     }
 
-    public int configure(char type, Object obj) {
+    public boolean removeItem(@NonNull String key) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid now.");
+            return false;
+        }
+
+        return removeItem(instance, key) == 0 ? true : false;
+    }
+
+    public boolean configure(@NonNull char type, @NonNull Object obj) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        if (Character.isDefined(type) == false) {
+            Log.e(TAG, "Arguments are invalid.");
+            return false;
+        }
+
         if (type == ConfigType.CONTEXT_ANDROID) {
             if (obj.getClass().getName().equals("android.app.Application") == true) {
-                return this.configure(instance, type, obj);
+                return configure(instance, type, obj) == 0 ? true : false;
             }
 
-            // TODO:
-            // This function should generate a proper exception
-            return -22;
+            // TODO: This function can generate a proper exception
+            return false;
         }
 
-        return -22;
+        return true;
     }
 
-    public void setEventListener(EventListener eventListener) {
-        this.eventListener = eventListener;
-        if (setEventListener(instance, this.eventListener != null) < 0) {
-            // TODO: throw an exception
+    public boolean setEventListener(@NonNull EventListener eventListener) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
         }
+
+        this.eventListener = eventListener;
+        if (setEventListener(instance, this.eventListener) < 0) {
+            Log.e(TAG, "Fail to set the given event listener.");
+            return false;     // TODO: Change as an exception
+        }
+
+        return true;
     }
 
     private static native void initialize();
@@ -103,5 +149,5 @@ public class Discovery extends NativeInstance {
     private native int setItem(long instance, String key, byte[] value);
     private native int removeItem(long instance, String key);
     private native int configure(long instance, char type, Object obj);
-    private native int setEventListener(long instance, boolean flag);
+    private native int setEventListener(long instance, EventListener eventListener);
 }

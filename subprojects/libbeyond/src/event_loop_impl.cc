@@ -827,4 +827,12 @@ int EventLoop::impl::GetHandle(void) const
     return handle;
 }
 
+EventLoop::impl::Event::Event()
+    : loop(nullptr)
+    , type(0)
+    , handler(nullptr)
+    , callbackData(nullptr)
+{
+}
+
 } // namespace beyond

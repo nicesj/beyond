@@ -23,6 +23,7 @@
 #include <cerrno>
 #include <jni.h>
 #include <string>
+#include <functional>
 
 #define JNI_LONG_TYPE "J"
 #define JNI_OBJECT_TYPE "Ljava/lang/Object;"
@@ -47,9 +48,13 @@ public:
 public:
     // NOTE:
     // The following static functions is going to be extracted to common implementation later
-    // Every BeyonD Java API are able to be implemeneted using the following functions.
+    // Every BeyonD Java API are able to be implemented using the following functions.
     static void PrintException(JNIEnv *env, const char *funcname = nullptr, int lineno = -1, bool clear = true);
     static int CallVoidMethod(JNIEnv *env, jobject obj, const char *methodName, const char *signature, ...);
+    static jclass FindClass(JNIEnv *env, const char *name);
+    static jmethodID GetMethodID(JNIEnv *env, jclass clazz, const char *name, const char *signature);
+    static void checkEnvException(JNIEnv *env);
+    static int ExecuteWithEnv(JavaVM *jvm, const std::function<int(JNIEnv *, void *)> &callback, void *data = nullptr);
 
 private:
     JNIHelper(void);

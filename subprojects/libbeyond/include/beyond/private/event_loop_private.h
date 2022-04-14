@@ -27,6 +27,7 @@ namespace beyond {
 class API EventLoop : public EventObjectBaseInterface {
 public:
     struct HandlerObject {
+        HandlerObject();
         EventObjectBaseInterface *eventObject;
         int type;
         void *data;

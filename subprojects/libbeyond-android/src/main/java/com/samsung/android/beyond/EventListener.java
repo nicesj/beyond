@@ -16,6 +16,8 @@
 
 package com.samsung.android.beyond;
 
+import androidx.annotation.NonNull;
+
 public interface EventListener {
-    public void onEvent(EventObject eventObject);
+    public void onEvent(@NonNull EventObject eventObject);
 }

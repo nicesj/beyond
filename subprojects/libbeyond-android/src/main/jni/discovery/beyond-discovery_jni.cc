@@ -25,12 +25,11 @@
 #define BEYOND_EVENT_LISTENER_ON_EVENT_METHOD_SIGNATURE "(Lcom/samsung/android/beyond/EventObject;)V"
 
 #define BEYOND_DISCOVERY_EVENT_OBJECT_CLASS_NAME "com/samsung/android/beyond/discovery/Discovery$DefaultEventObject"
-#define BEYOND_DISCOVERY_EVENT_OBJECT_CONSTRUCTOR_NAME "<init>"
-#define BEYOND_DISCOVERY_EVENT_OBJECT_CONSTRUCTOR_SIGANTURE "()V"
+#define BEYOND_DISCOVERY_INFO_CLASS_NAME "com/samsung/android/beyond/discovery/Discovery$Info"
+#define BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_NAME "<init>"
+#define BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_SIGNATURE "()V"
 #define BEYOND_DISCOVERY_EVENT_OBJECT_EVENT_TYPE_FIELD_NAME "eventType"
 #define BEYOND_DISCOVERY_EVENT_OBJECT_EVENT_DATA_FIELD_NAME "eventData"
-
-#define BEYOND_DISCOVERY_EVENT_LISTENER_FIELD_NAME "eventListener"
 
 DiscoveryNativeInterface::EventObject DiscoveryNativeInterface::eventObject = {
     .klass = nullptr,
@@ -38,13 +37,21 @@ DiscoveryNativeInterface::EventObject DiscoveryNativeInterface::eventObject = {
     .eventType = nullptr,
     .eventData = nullptr,
 };
-jfieldID DiscoveryNativeInterface::eventListener = nullptr;
+
+DiscoveryNativeInterface::Info DiscoveryNativeInterface::infoObject = {
+    .klass = nullptr,
+    .constructor = nullptr,
+    .name = nullptr,
+    .host = nullptr,
+    .port = nullptr,
+    .uuid = nullptr,
+};
 
 DiscoveryNativeInterface::DiscoveryNativeInterface(void)
     : discovery(nullptr)
     , looper(nullptr)
     , jvm(nullptr)
-    , thiz(nullptr)
+    , listener(nullptr)
 {
 }
 
@@ -62,21 +69,111 @@ DiscoveryNativeInterface::~DiscoveryNativeInterface(void)
         discovery->Destroy();
         discovery = nullptr;
     }
+
+    if (listener != nullptr) {
+        JNIHelper::ExecuteWithEnv(jvm, [&](JNIEnv *env, void *data) -> int {
+            // NOTE:
+            // this can be happens when the user calls "close" method directly
+            DbgPrint("Event listener is not cleared, forcibly delete the reference");
+            env->DeleteGlobalRef(listener);
+            listener = nullptr;
+            return 0;
+        });
+    }
+
+    jvm = nullptr;
 }
 
-void DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discovery_initialize(JNIEnv *env, jclass klass)
+void DiscoveryNativeInterface::initializeInfo(JNIEnv *env, jclass klass)
 {
-    eventListener = env->GetFieldID(klass,
-                                    BEYOND_DISCOVERY_EVENT_LISTENER_FIELD_NAME,
-                                    BEYOND_EVENT_LISTENER_CLASS_TYPE);
-    if (eventListener == nullptr) {
-        ErrPrint("Unable to find the field id of an eventListener");
-        if (env->ExceptionCheck() == true) {
-            JNIPrintException(env);
-        }
+    jclass infoKlass = env->FindClass(BEYOND_DISCOVERY_INFO_CLASS_NAME);
+    if (infoKlass == nullptr) {
+        ErrPrint("Unable to get the class");
         return;
     }
 
+    infoObject.klass = static_cast<jclass>(env->NewGlobalRef(infoKlass));
+    env->DeleteLocalRef(infoKlass);
+    if (infoObject.klass == nullptr) {
+        ErrPrint("Unable to get the Info class");
+        return;
+    }
+
+    infoObject.constructor = env->GetMethodID(infoObject.klass,
+                                              BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_NAME,
+                                              BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_SIGNATURE);
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+    if (infoObject.constructor == nullptr) {
+        ErrPrint("Unable to get the info constructor");
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+
+    infoObject.name = env->GetFieldID(infoObject.klass, "name", "Ljava/lang/String;");
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+    if (infoObject.name == nullptr) {
+        ErrPrint("Unable to get the name field from info");
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+
+    infoObject.host = env->GetFieldID(infoObject.klass, "host", "Ljava/lang/String;");
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+    if (infoObject.name == nullptr) {
+        ErrPrint("Unable to get the host field from info");
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+
+    infoObject.port = env->GetFieldID(infoObject.klass, "port", "I");
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+    if (infoObject.port == nullptr) {
+        ErrPrint("Unable to get the port field from info");
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+
+    infoObject.uuid = env->GetFieldID(infoObject.klass, "uuid", "Ljava/lang/String;");
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+    if (infoObject.uuid == nullptr) {
+        ErrPrint("Unable to get the uuid field from info");
+        env->DeleteGlobalRef(infoObject.klass);
+        infoObject.klass = nullptr;
+        return;
+    }
+}
+
+void DiscoveryNativeInterface::initializeEventObject(JNIEnv *env, jclass klass)
+{
     // NOTE:
     // Holds the event object class
     // And cache the field ids of it.
@@ -130,8 +227,8 @@ void DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discove
     }
 
     eventObject.constructor = env->GetMethodID(eventObject.klass,
-                                               BEYOND_DISCOVERY_EVENT_OBJECT_CONSTRUCTOR_NAME,
-                                               BEYOND_DISCOVERY_EVENT_OBJECT_CONSTRUCTOR_SIGANTURE);
+                                               BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_NAME,
+                                               BEYOND_DISCOVERY_DEFAULT_CONSTRUCTOR_SIGNATURE);
     if (eventObject.constructor == nullptr) {
         ErrPrint("Unable to find the event constructor metohd");
         if (env->ExceptionCheck() == true) {
@@ -141,18 +238,100 @@ void DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discove
         eventObject.klass = nullptr;
         return;
     }
+}
 
+void DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discovery_initialize(JNIEnv *env, jclass klass)
+{
+    initializeInfo(env, klass);
+    initializeEventObject(env, klass);
     DbgPrint("Discovery JNI cache initialized");
 }
 
-int DiscoveryNativeInterface::InvokeEventListener(JNIEnv *env, jobject thiz, int eventType, void *eventData)
+jobject DiscoveryNativeInterface::NewEventObject(JNIEnv *env, void *eventData)
 {
-    jobject eventListenerObject = env->GetObjectField(thiz, eventListener);
-    if (eventListenerObject == nullptr) {
-        DbgPrint("No listener registered");
-        return 0;
+    beyond_peer_info *info = static_cast<beyond_peer_info *>(eventData);
+    jstring host = nullptr;
+    jstring name = nullptr;
+
+    jobject object = env->NewObject(infoObject.klass, infoObject.constructor);
+    if (env->ExceptionCheck() == true) {
+        JNIPrintException(env);
+        return nullptr;
+    }
+    if (object == nullptr) {
+        ErrPrint("Failed to construct a new info object");
+        return nullptr;
     }
 
+    if (info->host == nullptr) {
+        DbgPrint("There is no host information");
+    } else {
+        host = env->NewStringUTF(info->host);
+        if (env->ExceptionCheck() == true) {
+            JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+            env->DeleteLocalRef(object);
+            return nullptr;
+        }
+
+        if (host == nullptr) {
+            ErrPrint("host is not valid");
+            env->DeleteLocalRef(object);
+            return nullptr;
+        }
+
+        env->SetObjectField(object, infoObject.host, host);
+    }
+
+    if (info->name == nullptr) {
+        DbgPrint("There is no service name");
+    } else {
+        name = env->NewStringUTF(info->name);
+        if (env->ExceptionCheck() == true) {
+            JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+            env->DeleteLocalRef(object);
+            env->DeleteLocalRef(host);
+            return nullptr;
+        }
+
+        if (name == nullptr) {
+            ErrPrint("host is not valid");
+            env->DeleteLocalRef(object);
+            env->DeleteLocalRef(host);
+            return nullptr;
+        }
+
+        env->SetObjectField(object, infoObject.name, name);
+    }
+
+    jstring uuid = env->NewStringUTF(info->uuid);
+    if (env->ExceptionCheck() == true) {
+        JNIHelper::PrintException(env, __FUNCTION__, __LINE__);
+        env->DeleteLocalRef(object);
+        env->DeleteLocalRef(host);
+        env->DeleteLocalRef(name);
+        return nullptr;
+    }
+
+    if (uuid == nullptr) {
+        ErrPrint("uuid is not valid");
+        env->DeleteLocalRef(object);
+        env->DeleteLocalRef(host);
+        env->DeleteLocalRef(name);
+        return nullptr;
+    }
+
+    env->SetObjectField(object, infoObject.uuid, static_cast<jobject>(uuid));
+
+    // TODO:
+    // Port array should be changed to a single value
+    // No more need to keep the multiple port information
+    env->SetIntField(object, infoObject.port, static_cast<const int>(info->port[0]));
+
+    return object;
+}
+
+int DiscoveryNativeInterface::InvokeEventListener(JNIEnv *env, int eventType, void *eventData)
+{
     jobject object = env->NewObject(eventObject.klass, eventObject.constructor);
     if (object == nullptr) {
         ErrPrint("Failed to construct a new event object");
@@ -163,16 +342,23 @@ int DiscoveryNativeInterface::InvokeEventListener(JNIEnv *env, jobject thiz, int
     }
 
     env->SetIntField(object, eventObject.eventType, eventType);
+    jobject evtObj = nullptr;
     if (eventData != nullptr) {
-        // TODO: convert eventData to JAVA object
-        // env->SetObjectField(object, eventObject.eventData, static_cast<jobject>(eventData));
+        evtObj = NewEventObject(env, eventData);
+        if (evtObj == nullptr) {
+            env->DeleteLocalRef(object);
+            return -EFAULT;
+        }
+
+        env->SetObjectField(object, eventObject.eventData, evtObj);
     }
-    int ret = JNIHelper::CallVoidMethod(env, eventListenerObject,
+
+    int ret = JNIHelper::CallVoidMethod(env, listener,
                                         BEYOND_EVENT_LISTENER_ON_EVENT_METHOD_NAME,
                                         BEYOND_EVENT_LISTENER_ON_EVENT_METHOD_SIGNATURE,
                                         object);
     env->DeleteLocalRef(object);
-    env->DeleteLocalRef(eventListenerObject);
+    env->DeleteLocalRef(evtObj);
     return ret;
 }
 
@@ -184,11 +370,6 @@ int DiscoveryNativeInterface::Discovery_eventHandler(int fd, int events, void *d
         assert(inst->discovery != nullptr && "discovery is nullptr");
         assert(inst->looper != nullptr && "looper is nullptr");
         ErrPrint("Invalid callbackdata");
-        return 0;
-    }
-
-    if (inst->thiz == nullptr) {
-        DbgPrint("Event listener is not ready yet");
         return 0;
     }
 
@@ -228,30 +409,18 @@ int DiscoveryNativeInterface::Discovery_eventHandler(int fd, int events, void *d
         }
     }
 
-    JNIEnv *env = nullptr;
-    int JNIStatus = inst->jvm->GetEnv((void **)(&env), JNI_VERSION_1_4);
-    if (JNIStatus == JNI_OK) {
-        // NOTE:
-        // Now, publish the event object to the event listener
-        status = inst->InvokeEventListener(env, inst->thiz, event.type, event.data);
-        if (status < 0) {
-            ErrPrint("Failed to invoke the event listener");
-        }
-    } else if (JNIStatus == JNI_EDETACHED) {
-        if (inst->jvm->AttachCurrentThread(&env, nullptr) == 0) {
+    if (inst->listener != nullptr) {
+        JNIHelper::ExecuteWithEnv(inst->jvm, [inst, &event](JNIEnv *env, void *data) -> int {
             // NOTE:
             // Now, publish the event object to the event listener
-            status = inst->InvokeEventListener(env, inst->thiz, event.type, event.data);
+            int status = inst->InvokeEventListener(env, event.type, event.data);
             if (status < 0) {
                 ErrPrint("Failed to invoke the event listener");
             }
-
-            inst->jvm->DetachCurrentThread();
-        } else {
-            ErrPrint("Failed to attach current thread");
-        }
-    } else if (JNIStatus == JNI_EVERSION) {
-        ErrPrint("GetEnv: Unsupported version");
+            return status;
+        });
+    } else {
+        DbgPrint("EventListener is not registered");
     }
 
     // NOTE:
@@ -330,28 +499,12 @@ jlong DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discov
         }
 
         if (inst->discovery->GetHandle() >= 0) {
-            inst->looper = ALooper_forThread();
-            if (inst->looper == nullptr) {
-                ErrPrint("There is no android looper found");
+            int ret = inst->AttachEventLoop();
+            if (ret < 0) {
                 delete inst;
                 inst = nullptr;
                 break;
             }
-
-            ALooper_acquire(inst->looper);
-
-            int ret = ALooper_addFd(inst->looper,
-                                    inst->discovery->GetHandle(),
-                                    ALOOPER_POLL_CALLBACK,
-                                    ALOOPER_EVENT_INPUT,
-                                    static_cast<ALooper_callbackFunc>(Discovery_eventHandler),
-                                    static_cast<void *>(inst));
-            if (ret < 0) {
-                ErrPrint("Failed to add event handler");
-                delete inst;
-                inst = nullptr;
-                break;
-            } // otherwise, the ret is 1 if succeed
         }
     } while (0);
 
@@ -361,6 +514,29 @@ jlong DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discov
     delete[] strs;
     delete[] argv;
     return reinterpret_cast<jlong>(inst);
+}
+
+int DiscoveryNativeInterface::AttachEventLoop(void)
+{
+    looper = ALooper_forThread();
+    if (looper == nullptr) {
+        ErrPrint("There is no android looper found");
+        return -ENOTSUP;
+    }
+
+    ALooper_acquire(looper);
+
+    int ret = ALooper_addFd(looper,
+                            discovery->GetHandle(),
+                            ALOOPER_POLL_CALLBACK,
+                            ALOOPER_EVENT_INPUT,
+                            static_cast<ALooper_callbackFunc>(Discovery_eventHandler),
+                            static_cast<void *>(this));
+    if (ret < 0) {
+        ErrPrint("Failed to add event handler");
+    } // otherwise, the ret is 1 if succeed
+
+    return ret;
 }
 
 void DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discovery_destroy(JNIEnv *env, jclass klass, jlong instance)
@@ -506,7 +682,7 @@ jint DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discove
     return ret;
 }
 
-jint DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discovery_setEventListener(JNIEnv *env, jobject _thiz, jlong instance, jboolean flag)
+jint DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discovery_setEventListener(JNIEnv *env, jobject _thiz, jlong instance, jobject listener)
 {
     auto inst = reinterpret_cast<DiscoveryNativeInterface *>(instance);
     if (inst == nullptr || inst->discovery == nullptr) {
@@ -514,20 +690,18 @@ jint DiscoveryNativeInterface::Java_com_samsung_android_beyond_discovery_Discove
         return -EFAULT;
     }
 
-    if (flag == JNI_TRUE) {
-        inst->thiz = env->NewGlobalRef(_thiz);
-        if (inst->thiz == nullptr) {
+    if (inst->listener != nullptr) {
+        env->DeleteGlobalRef(inst->listener);
+        inst->listener = nullptr;
+    }
+
+    if (listener != nullptr) {
+        inst->listener = env->NewGlobalRef(listener);
+        if (inst->listener == nullptr) {
             ErrPrint("Failed to get a global reference");
             return -EFAULT;
         }
-    } else if (inst->thiz == _thiz) {
-        env->DeleteGlobalRef(inst->thiz);
-        inst->thiz = nullptr;
-    } else {
-        ErrPrint("This object corrupted");
-        return -EFAULT;
     }
-
     return 0;
 }
 
@@ -547,7 +721,7 @@ int DiscoveryNativeInterface::RegisterNativeInterface(JNIEnv *env)
         { "setItem", "(JLjava/lang/String;[B)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_discovery_Discovery_setItem) },
         { "removeItem", "(JLjava/lang/String;)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_discovery_Discovery_removeItem) },
         { "configure", "(JCLjava/lang/Object;)I", reinterpret_cast<void *>((int (*)(JNIEnv *, jobject, jlong, jchar, jobject))Java_com_samsung_android_beyond_discovery_Discovery_configure) },
-        { "setEventListener", "(JZ)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_discovery_Discovery_setEventListener) },
+        { "setEventListener", "(J" BEYOND_EVENT_LISTENER_CLASS_TYPE ")I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_discovery_Discovery_setEventListener) },
     };
 
     jclass klass = env->FindClass("com/samsung/android/beyond/discovery/Discovery");

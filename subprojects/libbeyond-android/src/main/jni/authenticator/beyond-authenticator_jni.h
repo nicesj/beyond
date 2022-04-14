@@ -45,7 +45,7 @@ private:
     static int Java_com_samsung_android_beyond_Authenticator_deactivate(JNIEnv *env, jobject thiz, jlong inst);
     static void Java_com_samsung_android_beyond_Authenticator_initialize(JNIEnv *env, jclass klass);
     static void Java_com_samsung_android_beyond_Authenticator_destroy(JNIEnv *env, jclass klass, jlong inst);
-    static int Java_com_samsung_android_beyond_Authenticator_setEventListener(JNIEnv *env, jobject thiz, jlong inst, jboolean flag);
+    static int Java_com_samsung_android_beyond_Authenticator_setEventListener(JNIEnv *env, jobject thiz, jlong inst, jobject listener);
 
 private:
     static int Authenticator_eventHandler(int fd, int events, void *data);
@@ -58,16 +58,12 @@ private: // JNI Cache
         jfieldID eventData;
     };
 
-    struct EventListener {
-        jfieldID eventListener;
-    };
-
 private: // JNI Cache
     static EventObject eventObject;
-    static jfieldID eventListener;
 
 private:
-    int InvokeEventListener(JNIEnv *env, jobject thiz, int eventType, void *eventData);
+    int InvokeEventListener(JNIEnv *env, int eventType, void *eventData);
+    int AttachEventLoop(void);
 
 private:
     beyond::Authenticator *authenticator;
@@ -75,7 +71,7 @@ private:
     ALooper *looper;
 
     JavaVM *jvm;
-    jobject thiz;
+    jobject listener;
 };
 
 #endif // __BEYOND_ANDROID_AUTHENTICATOR_NATIVE_INTERFACE_H__

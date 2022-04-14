@@ -70,6 +70,7 @@ private:
     int spfd[2];
 
     struct Event {
+        Event();
         EventLoop *loop;
         int type;
         std::function<void(EventLoop *, void *)> handler;

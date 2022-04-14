@@ -18,6 +18,8 @@ package com.samsung.android.beyond.DiscoveryUnitTest;
 
 import com.samsung.android.beyond.discovery.Discovery;
 import com.samsung.android.beyond.module.discovery.DNSSD.DNSSDModule;
+import android.content.Context;
+import androidx.test.core.app.ApplicationProvider;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -27,6 +29,8 @@ import static org.junit.Assert.assertNotNull;
 import android.os.Looper;
 
 public class DiscoveryConstructionUnitTest {
+    Context context = ApplicationProvider.getApplicationContext();
+
     @BeforeClass
     public static void prepareLoop() {
         if (Looper.myLooper() == null) {
@@ -37,7 +41,7 @@ public class DiscoveryConstructionUnitTest {
     @Test
     public void testCreateServer() {
         String[] args = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        try (Discovery inst = new Discovery(args)) {
+        try (Discovery inst = new Discovery(context, args)) {
             assertNotNull(inst);
         }
     }
@@ -45,28 +49,28 @@ public class DiscoveryConstructionUnitTest {
     @Test
     public void testCreateClient() {
         String[] args = { DNSSDModule.NAME };
-        try (Discovery inst = new Discovery(args)) {
+        try (Discovery inst = new Discovery(context, args)) {
             assertNotNull(inst);
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testCreateWithNullArgs() {
-        try (Discovery inst = new Discovery(null)) {
+        try (Discovery inst = new Discovery(context, null)) {
         }
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateWithZeroArgs() {
         String[] args = {};
-        try (Discovery inst = new Discovery(args)) {
+        try (Discovery inst = new Discovery(context, args)) {
         }
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateWithInvalidArgs() {
         String[] args = { "discovery_invalid" };
-        try (Discovery inst = new Discovery(args)) {
+        try (Discovery inst = new Discovery(context, args)) {
         }
     }
 }

@@ -30,11 +30,9 @@
 
 #define BEYOND_AUTHENTICATOR_EVENT_OBJECT_CLASS_NAME "com/samsung/android/beyond/authenticator/Authenticator$DefaultEventObject"
 #define BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_NAME "<init>"
-#define BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_SIGANTURE "()V"
+#define BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_SIGNATURE "()V"
 #define BEYOND_AUTHENTICATOR_EVENT_OBJECT_EVENT_TYPE_FIELD_NAME "eventType"
 #define BEYOND_AUTHENTICATOR_EVENT_OBJECT_EVENT_DATA_FIELD_NAME "eventData"
-
-#define BEYOND_AUTHENTICATOR_EVENT_LISTENER_FIELD_NAME "eventListener"
 
 AuthenticatorNativeInterface::EventObject AuthenticatorNativeInterface::eventObject = {
     .klass = nullptr,
@@ -42,13 +40,12 @@ AuthenticatorNativeInterface::EventObject AuthenticatorNativeInterface::eventObj
     .eventType = nullptr,
     .eventData = nullptr,
 };
-jfieldID AuthenticatorNativeInterface::eventListener = nullptr;
 
 AuthenticatorNativeInterface::AuthenticatorNativeInterface(void)
     : authenticator(nullptr)
     , looper(nullptr)
     , jvm(nullptr)
-    , thiz(nullptr)
+    , listener(nullptr)
 {
 }
 
@@ -87,33 +84,15 @@ AuthenticatorNativeInterface::~AuthenticatorNativeInterface(void)
     // In the destructor, we are doing too much works
     // It should be narrowed and simplified
     // otherwise, the destructor code should be separated
-    if (thiz != nullptr) {
-        JNIEnv *env = nullptr;
-        bool attached = false;
-        int JNIStatus = jvm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_4);
-        if (JNIStatus == JNI_EDETACHED) {
-            if (jvm->AttachCurrentThread(&env, nullptr) != 0) {
-                ErrPrint("Failed to attach current thread");
-            } else {
-                attached = true;
-            }
-        } else if (JNIStatus == JNI_EVERSION) {
-            ErrPrint("GetEnv: Unsupported version");
-        }
-
-        if (env == nullptr) {
-            ErrPrint("Failed to get the environment object");
-        } else {
+    if (listener != nullptr) {
+        JNIHelper::ExecuteWithEnv(jvm, [&](JNIEnv *env, void *data) -> int {
             // NOTE:
             // this can be happens when the user calls "close" method directly
             DbgPrint("Event listener is not cleared, forcibly delete the reference");
-            env->DeleteGlobalRef(thiz);
-            thiz = nullptr;
-        }
-
-        if (attached == true) {
-            jvm->DetachCurrentThread();
-        }
+            env->DeleteGlobalRef(listener);
+            listener = nullptr;
+            return 0;
+        });
     }
 
     jvm = nullptr;
@@ -121,18 +100,6 @@ AuthenticatorNativeInterface::~AuthenticatorNativeInterface(void)
 
 void AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_initialize(JNIEnv *env, jclass klass)
 {
-    eventListener = env->GetFieldID(klass,
-                                    BEYOND_AUTHENTICATOR_EVENT_LISTENER_FIELD_NAME,
-                                    BEYOND_EVENT_LISTENER_CLASS_TYPE);
-    if (env->ExceptionCheck() == true) {
-        JNIPrintException(env);
-        return;
-    }
-    if (eventListener == nullptr) {
-        ErrPrint("Unable to find the field id of an eventListener");
-        return;
-    }
-
     // NOTE:
     // Holds the event object class
     // And cache the field ids of it.
@@ -185,12 +152,24 @@ void AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator
         eventObject.klass = nullptr;
         return;
     }
+    if (eventObject.eventData == nullptr) {
+        ErrPrint("Unable to get the event data field");
+        env->DeleteGlobalRef(eventObject.klass);
+        eventObject.klass = nullptr;
+        return;
+    }
 
     eventObject.constructor = env->GetMethodID(eventObject.klass,
                                                BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_NAME,
-                                               BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_SIGANTURE);
+                                               BEYOND_AUTHENTICATOR_EVENT_OBJECT_CONSTRUCTOR_SIGNATURE);
     if (env->ExceptionCheck() == true) {
         JNIPrintException(env);
+        env->DeleteGlobalRef(eventObject.klass);
+        eventObject.klass = nullptr;
+        return;
+    }
+    if (eventObject.constructor == nullptr) {
+        ErrPrint("Unable to get the constructor");
         env->DeleteGlobalRef(eventObject.klass);
         eventObject.klass = nullptr;
         return;
@@ -199,14 +178,8 @@ void AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator
     DbgPrint("Authenticator JNI cache initialized");
 }
 
-int AuthenticatorNativeInterface::InvokeEventListener(JNIEnv *env, jobject thiz, int eventType, void *eventData)
+int AuthenticatorNativeInterface::InvokeEventListener(JNIEnv *env, int eventType, void *eventData)
 {
-    jobject eventListenerObject = env->GetObjectField(thiz, eventListener);
-    if (eventListenerObject == nullptr) {
-        DbgPrint("No listener registered");
-        return 0;
-    }
-
     jobject object = env->NewObject(eventObject.klass, eventObject.constructor);
     if (env->ExceptionCheck() == true) {
         JNIPrintException(env);
@@ -222,12 +195,11 @@ int AuthenticatorNativeInterface::InvokeEventListener(JNIEnv *env, jobject thiz,
         env->SetObjectField(object, eventObject.eventData, static_cast<jobject>(eventData));
     }
 
-    int ret = JNIHelper::CallVoidMethod(env, eventListenerObject,
+    int ret = JNIHelper::CallVoidMethod(env, listener,
                                         BEYOND_EVENT_LISTENER_ON_EVENT_METHOD_NAME,
                                         BEYOND_EVENT_LISTENER_ON_EVENT_METHOD_SIGNATURE,
                                         object);
     env->DeleteLocalRef(object);
-    env->DeleteLocalRef(eventListenerObject);
     return ret;
 }
 
@@ -278,38 +250,18 @@ int AuthenticatorNativeInterface::Authenticator_eventHandler(int fd, int events,
         }
     }
 
-    JNIEnv *env = nullptr;
-    bool attached = false;
-    int JNIStatus;
-
-    JNIStatus = inst->jvm->GetEnv((void **)(&env), JNI_VERSION_1_4);
-    if (JNIStatus == JNI_EDETACHED) {
-        if (inst->jvm->AttachCurrentThread(&env, nullptr) != 0) {
-            ErrPrint("Failed to attach current thread");
-        } else {
-            attached = true;
-        }
-    } else if (JNIStatus == JNI_EVERSION) {
-        ErrPrint("GetEnv: Unsupported version");
-    }
-
-    if (env == nullptr) {
-        ErrPrint("Failed to getEnv, event cannot be delivered to the managed code");
-    } else {
-        // NOTE:
-        // Now, publish the event object to the event listener
-        if (inst->thiz != nullptr) {
-            status = inst->InvokeEventListener(env, inst->thiz, event.type, event.data);
+    if (inst->listener != nullptr) {
+        JNIHelper::ExecuteWithEnv(inst->jvm, [inst, &event](JNIEnv *env, void *data) -> int {
+            // NOTE:
+            // Now, publish the event object to the event listener
+            int status = inst->InvokeEventListener(env, event.type, event.data);
             if (status < 0) {
                 ErrPrint("Failed to invoke the event listener");
             }
-        } else {
-            DbgPrint("Event listener is not ready yet");
-        }
-
-        if (attached == true) {
-            inst->jvm->DetachCurrentThread();
-        }
+            return status;
+        });
+    } else {
+        DbgPrint("Event listener is not registered");
     }
 
     // NOTE:
@@ -402,28 +354,12 @@ long AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator
         }
 
         if (inst->authenticator->GetHandle() >= 0) {
-            inst->looper = ALooper_forThread();
-            if (inst->looper == nullptr) {
-                ErrPrint("There is no android looper found");
+            int ret = inst->AttachEventLoop();
+            if (ret < 0) {
                 delete inst;
                 inst = nullptr;
                 break;
             }
-
-            ALooper_acquire(inst->looper);
-
-            int ret = ALooper_addFd(inst->looper,
-                                    inst->authenticator->GetHandle(),
-                                    ALOOPER_POLL_CALLBACK,
-                                    ALOOPER_EVENT_INPUT,
-                                    static_cast<ALooper_callbackFunc>(Authenticator_eventHandler),
-                                    static_cast<void *>(inst));
-            if (ret < 0) {
-                ErrPrint("Failed to add event handler");
-                delete inst;
-                inst = nullptr;
-                break;
-            } // otherwise, the ret is 1 if succeed
         } else {
             DbgPrint("Authenticator module does not support asynchronous mode");
         }
@@ -435,6 +371,29 @@ long AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator
     delete[] strs;
     delete[] argv;
     return reinterpret_cast<long>(inst);
+}
+
+int AuthenticatorNativeInterface::AttachEventLoop(void)
+{
+    looper = ALooper_forThread();
+    if (looper == nullptr) {
+        ErrPrint("There is no android looper found");
+        return -ENOTSUP;
+    }
+
+    ALooper_acquire(looper);
+
+    int ret = ALooper_addFd(looper,
+                            authenticator->GetHandle(),
+                            ALOOPER_POLL_CALLBACK,
+                            ALOOPER_EVENT_INPUT,
+                            static_cast<ALooper_callbackFunc>(Authenticator_eventHandler),
+                            static_cast<void *>(this));
+    if (ret < 0) {
+        ErrPrint("Failed to add event handler");
+    } // otherwise, the ret is 1 if succeed
+
+    return ret;
 }
 
 int AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_configure(JNIEnv *env, jobject thiz, jlong _inst, jchar type, jlong objInst)
@@ -542,7 +501,7 @@ int AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_
     return inst->authenticator->Deactivate();
 }
 
-int AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_setEventListener(JNIEnv *env, jobject _thiz, jlong _inst, jboolean flag)
+int AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_setEventListener(JNIEnv *env, jobject _thiz, jlong _inst, jobject listener)
 {
     AuthenticatorNativeInterface *inst = reinterpret_cast<AuthenticatorNativeInterface *>(_inst);
     if (inst == nullptr || inst->authenticator == nullptr) {
@@ -550,18 +509,17 @@ int AuthenticatorNativeInterface::Java_com_samsung_android_beyond_Authenticator_
         return -EFAULT;
     }
 
-    if (flag == true) {
-        inst->thiz = env->NewGlobalRef(_thiz);
-        if (inst->thiz == nullptr) {
+    if (inst->listener != nullptr) {
+        env->DeleteGlobalRef(inst->listener);
+        inst->listener = nullptr;
+    }
+
+    if (listener != nullptr) {
+        inst->listener = env->NewGlobalRef(listener);
+        if (inst->listener == nullptr) {
             ErrPrint("Failed to get a global reference");
             return -EFAULT;
         }
-    } else if (inst->thiz == _thiz) {
-        env->DeleteGlobalRef(inst->thiz);
-        inst->thiz = nullptr;
-    } else {
-        ErrPrint("This object corrupted");
-        return -EFAULT;
     }
 
     return 0;
@@ -579,7 +537,7 @@ int AuthenticatorNativeInterface::RegisterNativeInterface(JNIEnv *env)
         { "prepare", "(J)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_Authenticator_prepare) },
         { "activate", "(J)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_Authenticator_activate) },
         { "deactivate", "(J)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_Authenticator_deactivate) },
-        { "setEventListener", "(JZ)I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_Authenticator_setEventListener) },
+        { "setEventListener", "(J" BEYOND_EVENT_LISTENER_CLASS_TYPE ")I", reinterpret_cast<void *>(Java_com_samsung_android_beyond_Authenticator_setEventListener) },
     };
 
     jclass klass = env->FindClass("com/samsung/android/beyond/authenticator/Authenticator");

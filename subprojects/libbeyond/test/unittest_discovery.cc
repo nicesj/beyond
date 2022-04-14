@@ -48,27 +48,27 @@ beyond_argument args_client = {
     .argv = argv_client,
 };
 
-TEST(Discovery, CreateServer)
+TEST(Discovery, CreateServer_Anytime)
 {
     auto discovery = beyond::Discovery::Create(&args_server);
     ASSERT_NE(discovery, nullptr);
     discovery->Destroy();
 }
 
-TEST(Discovery, CreateClient)
+TEST(Discovery, CreateClient_Anytime)
 {
     auto discovery = beyond::Discovery::Create(&args_client);
     ASSERT_NE(discovery, nullptr);
     discovery->Destroy();
 }
 
-TEST(Discovery, CreateWithNullptr)
+TEST(Discovery, CreateWithNullptr_Anytime)
 {
     auto discovery = beyond::Discovery::Create(nullptr);
     ASSERT_EQ(discovery, nullptr);
 }
 
-TEST(Discovery, CreateWithInvalidModule)
+TEST(Discovery, CreateWithInvalidModule_Anytime)
 {
     char *argv_invalid[] = {
         const_cast<char *>("discovery_invalid"),
@@ -83,14 +83,14 @@ TEST(Discovery, CreateWithInvalidModule)
     ASSERT_EQ(discovery, nullptr);
 }
 
-TEST(Discovery, Destroy)
+TEST(Discovery, Destroy_Anytime)
 {
     auto discovery = beyond::Discovery::Create(&args_server);
     ASSERT_NE(discovery, nullptr);
     discovery->Destroy();
 }
 
-TEST(Discovery, Configure)
+TEST(Discovery, Configure_Anytime)
 {
     auto discovery = beyond::Discovery::Create(&args_server);
     ASSERT_NE(discovery, nullptr);

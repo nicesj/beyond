@@ -32,12 +32,14 @@ private:
 
     static jboolean Java_com_samsung_beyond_TensorHandler_getInputTensorsInfo(JNIEnv *env, jobject thiz, jlong inference_handle, jobject datatype_values, jobject dimensions_list);
     static jboolean Java_com_samsung_beyond_TensorHandler_getOutputTensorsInfo(JNIEnv *env, jobject thiz, jlong inference_handle, jobject datatype_values, jobject dimensions_list);
-    static int getTensorsInfo(JNIEnv *env, const beyond_tensor_info *tensors_info, int num_tensors, jobject datatype_values, jobject dimensions_list);
-    static jlong Java_com_samsung_beyond_TensorHandler_allocateTensors(JNIEnv *env, jobject thiz, jlong inference_handle, jobject datatype_values, jintArray dataSizes, jobject dimensions_list, jint num_tensors, jobjectArray buffer_array);
-    static int transformTensorsInfo(JNIEnv *env, beyond_tensor_info *&tensors_info, int num_tensors, jobject datatype_values, jintArray data_sizes, jobject dimensions_list);
-    static void freeTensorDimensions(beyond_tensor_info *&info, int &size);
-    static jlong Java_com_samsung_beyond_TensorHandler_getOutput(JNIEnv *env, jobject thiz, jlong inference_handle, jobjectArray byte_array, jint num_tensors);
+    static int GetTensorsInfo(JNIEnv *env, const beyond_tensor_info *tensors_info, int num_tensors, jobject datatype_values, jobject dimensions_list);
+    static jlong Java_com_samsung_beyond_TensorHandler_allocateTensors(JNIEnv *env, jobject thiz, jlong inference_handle, jobjectArray tensor_info_array, jint num_tensors, jobjectArray buffer_array);
+    static int TransformTensorsInfo(JNIEnv *env, beyond_tensor_info *&tensors_info, int num_tensors, jobjectArray tensor_info_array);
+    static void FreeTensorDimensions(beyond_tensor_info *&info, int &size);
+    static jlong Java_com_samsung_beyond_TensorHandler_getOutput(JNIEnv *env, jobject thiz, jlong inference_handle, jobjectArray byte_array);
     static void Java_com_samsung_beyond_TensorHandler_freeTensors(JNIEnv *env, jobject thiz, jlong inference_handle, jlong tensors_instance, jint num_tensors);
+
+    static void CheckNull(JNIEnv *env, jobject object, const char *error_message, beyond_tensor_info *_info, int index);
 };
 
 #endif // __BEYOND_ANDROID_TENSOR_JNI_H__

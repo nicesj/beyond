@@ -14,27 +14,8 @@
  * limitations under the License.
  */
 
-#include <beyond/platform/beyond_platform.h>
-#include <beyond/private/beyond_private.h>
-#include <exception>
-#include <cerrno>
-#include <gtest/gtest.h>
+package com.samsung.android.beyond.inference;
 
-int main(int argc, char *argv[])
-{
-    int result = -1;
-
-    try {
-        testing::InitGoogleTest(&argc, argv);
-    } catch (std::exception &e) {
-        ErrPrint("catch 'testing::internal::<unnamed>::ClassUniqueToAlwaysTrue': %s", e.what());
-    }
-
-    try {
-        result = RUN_ALL_TESTS();
-    } catch (std::exception &e) {
-        ErrPrint("catch `testing::internal::GoogleTestFailureException`: %s", e.what());
-    }
-
-    return result;
+public abstract class OutputCallback {
+    public abstract void onReceivedOutputs();
 }

@@ -18,6 +18,8 @@ package com.samsung.android.beyond;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.util.function.Consumer;
 
 public abstract class NativeInstance implements AutoCloseable {
@@ -31,7 +33,7 @@ public abstract class NativeInstance implements AutoCloseable {
         private long nativeInstance;
         private Consumer<Long> function;
 
-        public Destructor(long instance, Consumer<Long> function) {
+        public Destructor(@NonNull long instance, @NonNull Consumer<Long> function) {
             nativeInstance = instance;
             this.function = function;
         }
@@ -55,7 +57,7 @@ public abstract class NativeInstance implements AutoCloseable {
     protected long instance;
     private Destructor destructor;
 
-    protected void registerNativeInstance(long nativeInstance, Consumer<Long> function) {
+    protected void registerNativeInstance(@NonNull long nativeInstance, @NonNull Consumer<Long> function) {
         instance = nativeInstance;
         destructor = new Destructor(instance, function);
         NativeResourceManager.register(this, destructor);

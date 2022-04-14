@@ -10,6 +10,8 @@ import java.util.Map;
 
 import static com.samsung.android.beyond.inference.Option.TAG;
 
+import androidx.annotation.NonNull;
+
 public class Tensor<T> {
 
     private final TensorInfo tensorInfo;
@@ -18,17 +20,12 @@ public class Tensor<T> {
 
     private ByteBuffer buffer;
 
-    protected Tensor(Class<T> classType, TensorInfo tensorInfo) {
+    protected Tensor(@NonNull Class<T> classType, @NonNull TensorInfo tensorInfo) {
         this.classType = classType;
         this.tensorInfo = tensorInfo;
     }
 
-    public boolean setData(Buffer dataBuffer) {
-        if (dataBuffer == null) {
-            Log.e(TAG, "The given dataBuffer is null.");
-            return false;
-        }
-
+    public boolean setData(@NonNull Buffer dataBuffer) {
         try {
             switch (getTensorInfo().getDataType()) {
                 case UINT8:
@@ -98,12 +95,7 @@ public class Tensor<T> {
         return tensorInfo;
     }
 
-    protected boolean setBuffer(ByteBuffer buffer) {
-        if (buffer == null) {
-            Log.e(TAG, "The given data is null.");
-            return false;
-        }
-
+    protected boolean setBuffer(@NonNull ByteBuffer buffer) {
         this.buffer = buffer;
         this.buffer.clear();
 
@@ -114,7 +106,7 @@ public class Tensor<T> {
         return buffer;
     }
 
-    public static DataType fromClass(Class<?> c) {
+    private static DataType fromClass(@NonNull Class<?> c) {
         DataType dataType = typeCodes.get(c);
         if (dataType == null) {
             throw new IllegalArgumentException(
@@ -123,7 +115,7 @@ public class Tensor<T> {
         return dataType;
     }
 
-    public static Class<?> fromValue(DataType dataType) {
+    static Class<?> fromValue(@NonNull DataType dataType) {
         for (Class<?> classType : typeCodes.keySet()) {
             if (dataType.equals(fromClass(classType))) {
                 return classType;

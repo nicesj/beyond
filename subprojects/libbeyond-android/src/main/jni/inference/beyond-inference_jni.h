@@ -22,6 +22,7 @@
 #include <beyond/platform/beyond_platform.h>
 #include <beyond/private/beyond_private.h>
 
+#include <android/looper.h>
 #include <jni.h>
 
 class InferenceNativeInterface : public NativeInterface {
@@ -30,6 +31,16 @@ public:
 
 public:
     static int RegisterInferenceNatives(JNIEnv *env);
+
+private:
+    struct CallbackJNIContext {
+        JavaVM *jvm;
+        jclass callbackClass;
+        jmethodID onReceivedOutputsMethodID;
+        jobjectArray byteBufferArray;
+        jmethodID getByteBufferArrayMethodID;
+        jmethodID organizeTensorSetMethodID;
+    };
 
 private:
     InferenceNativeInterface(void);
@@ -41,9 +52,20 @@ private:
     static jboolean Java_com_samsung_android_beyond_InferenceHandler_loadModel(JNIEnv *env, jobject thiz, jlong inference_handle, jstring model_path);
     static jboolean Java_com_samsung_android_beyond_InferenceHandler_prepare(JNIEnv *env, jobject thiz, jlong inference_handle);
     static jboolean Java_com_samsung_android_beyond_InferenceHandler_run(JNIEnv *env, jobject thiz, jlong inference_handle, jlong tensors_instance, jint num_tensors);
+    static jboolean Java_com_samsung_android_beyond_InferenceHandler_removePeer(JNIEnv *env, jobject thiz, jlong inference_handle, jlong peer_handle);
+    static jint Java_com_samsung_android_beyond_InferenceHandler_setOutputCallback(JNIEnv *env, jobject thiz, jlong inference_handle, jobject callback_object);
+
+    int AttachEventLoop(JNIEnv *env);
+    static int OutputCallbackHandler(int fd, int events, void *data);
+    int InvokeOutputCallback(InferenceNativeInterface *inference_handle_, int eventType, void *eventData);
+    void DetachAttachedThread(int JNIStatus);
 
 private:
     beyond::Inference *inference;
+    ALooper *looper;
+    jobject outputCallbackJobject;
+
+    static CallbackJNIContext callbackInfo;
 };
 
 #endif // __BEYOND_ANDROID_INFERENCE_JNI_H__

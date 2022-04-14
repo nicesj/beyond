@@ -22,13 +22,12 @@ import com.samsung.android.beyond.ConfigType;
 import com.samsung.android.beyond.authenticator.Authenticator;
 import com.samsung.android.beyond.inference.InferenceModuleFactory;
 import com.samsung.android.beyond.inference.Peer;
+import com.samsung.android.beyond.inference.PeerInfo;
 import com.samsung.android.beyond.module.authenticator.SSL.SSLModule;
 import com.samsung.android.beyond.module.peer.NN.NNModule;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.UUID;
 
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static com.samsung.android.beyond.TestUtils.*;
@@ -40,6 +39,8 @@ public class InferencePeerUnitTest {
 
     private static Context context;
 
+    private Peer serverPeer = null;
+
     private Peer inferencePeer = null;
 
     @BeforeClass
@@ -49,23 +50,44 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testCreatePeerServer() {
-        inferencePeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
-        assertNotNull(inferencePeer);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        assertNotNull(serverPeer);
+
+        serverPeer.close();
     }
 
     @Test
-    public void testPeerServerSetIpPort() {
-        inferencePeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+    public void testPeerServerSetInfo() {
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
 
-        assertEquals(true, inferencePeer.setIpPort());
+        assertEquals(true, serverPeer.setInfo());
+
+        serverPeer.close();
     }
 
     @Test
-    public void testPeerServerActivateControlChannel() {
-        inferencePeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
-        inferencePeer.setIpPort();
+    public void testPeerServerGetInfo() {
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer.setInfo();
 
-        assertEquals(true, inferencePeer.activateControlChannel());
+        PeerInfo info = serverPeer.getInfo();
+        assertNotNull(info);
+        assertEquals(info.getHost(), "0.0.0.0");
+        assertEquals(info.getPort(), 3000);
+
+        serverPeer.close();
+    }
+
+    @Test
+    public void testPeerServerActivateAndDeactivateControlChannel() {
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer.setInfo();
+
+        assertEquals(true, serverPeer.activateControlChannel());
+
+        assertEquals(true, serverPeer.deactivateControlChannel());
+
+        serverPeer.close();
     }
 
     @Test
@@ -76,31 +98,21 @@ public class InferencePeerUnitTest {
         Authenticator auth = new Authenticator(args);
         assertNotNull(auth);
 
-        int ret = auth.activate();
-        assertEquals(ret, 0);
-        ret = auth.prepare();
-        assertEquals(ret, 0);
+        assertTrue(auth.activate());
+        assertTrue(auth.prepare());
 
-        inferencePeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
-        assertNotNull(inferencePeer);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        assertNotNull(serverPeer);
 
-        boolean status = inferencePeer.configure(ConfigType.AUTHENTICATOR, auth);
+        boolean status = serverPeer.configure(ConfigType.AUTHENTICATOR, auth);
         assertTrue(status);
 
         // TODO:
         // GC the inferencePeer and destroy its native instance
-        inferencePeer = null;
         auth.close();
         auth = null;
-    }
 
-    @Test
-    public void testPeerServerDeactivateControlChannel() {
-        inferencePeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
-        inferencePeer.setIpPort();
-        inferencePeer.activateControlChannel();
-
-        assertEquals(true, inferencePeer.deactivateControlChannel());
+        serverPeer.close();
     }
 
     @Test
@@ -108,33 +120,34 @@ public class InferencePeerUnitTest {
         inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
 
         assertNotNull(inferencePeer);
+
+        inferencePeer.close();
     }
 
     @Test
-    public void testPeerClientSetIpPort() {
+    public void testPeerClientSetInfo() {
         inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
+        PeerInfo info = new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT);
+        assertEquals(true, inferencePeer.setInfo(info));
 
-        assertEquals(true, inferencePeer.setIpPort(TEST_SERVER_IP, TEST_SERVER_PORT));
+        inferencePeer.close();
     }
 
     @Test
-    public void testPeerClientActivateControlChannel() {
-        inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
-        inferencePeer.setIpPort(TEST_SERVER_IP, TEST_SERVER_PORT);
-
-        assertEquals(true, inferencePeer.activateControlChannel());
-    }
-
-    @Test
-    public void testPeerClientDeactivateControlChannel() {
-        Peer serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
-        serverPeer.setIpPort();
+    public void testPeerClientActivateAndDeactivateControlChannel() {
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer.setInfo();
         serverPeer.activateControlChannel();
 
         inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
-        inferencePeer.setIpPort();
-        inferencePeer.activateControlChannel();
+        inferencePeer.setInfo(new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT));
 
-        assertEquals(true, inferencePeer.deactivateControlChannel());
+        assertEquals(true, inferencePeer.activateControlChannel());
+
+        assertTrue(inferencePeer.deactivateControlChannel());
+        assertTrue(serverPeer.deactivateControlChannel());
+
+        inferencePeer.close();
+        serverPeer.close();
     }
 }

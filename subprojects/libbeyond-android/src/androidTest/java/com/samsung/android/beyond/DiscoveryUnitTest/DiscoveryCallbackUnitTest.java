@@ -18,6 +18,7 @@ package com.samsung.android.beyond.DiscoveryUnitTest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.os.Looper;
@@ -25,10 +26,10 @@ import android.os.Looper;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.samsung.android.beyond.ConfigType;
 import com.samsung.android.beyond.discovery.Discovery;
 import com.samsung.android.beyond.module.discovery.DNSSD.DNSSDModule;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -38,26 +39,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DiscoveryCallbackUnitTest {
     Context context = ApplicationProvider.getApplicationContext();
 
+    @BeforeClass
+    public static void prepareLoop() {
+        if (Looper.myLooper() == null) {
+            Looper.prepare();
+        }
+    }
+
     @Test
     public void testSetEventListener() {
-        Looper.prepare();
-
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        try (Discovery server = new Discovery(args_server)) {
+        try (Discovery server = new Discovery(context, args_server)) {
             assertNotNull(server);
-            int ret = server.configure(ConfigType.CONTEXT_ANDROID, context);
-            assertEquals(0, ret);
             AtomicInteger invoked = new AtomicInteger();
             server.setEventListener(eventObject -> {
                 invoked.getAndIncrement();
+                assertEquals(1, invoked.get());
                 Looper.myLooper().quit();
             });
-            ret = server.activate();
-            assertEquals(0, ret);
+            assertTrue(server.activate());
 
             Looper.loop();
 
-            assertEquals(invoked.get(), 1);
             server.deactivate();
         }
     }

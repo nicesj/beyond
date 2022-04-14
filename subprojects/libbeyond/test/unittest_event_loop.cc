@@ -21,14 +21,14 @@
 #include <gtest/gtest.h>
 #include <unistd.h>
 
-TEST(EventLoop, Create)
+TEST(EventLoop, Create_Anytime)
 {
     auto loop = beyond::EventLoop::Create();
     ASSERT_NE(loop, nullptr);
     loop->Destroy();
 }
 
-TEST(EventLoop, Run)
+TEST(EventLoop, Run_Anytime)
 {
     auto loop = beyond::EventLoop::Create();
     ASSERT_NE(loop, nullptr);
@@ -39,7 +39,7 @@ TEST(EventLoop, Run)
     loop->Destroy();
 }
 
-TEST(EventLoop, RunAsync)
+TEST(EventLoop, RunAsync_Anytime)
 {
     auto loop = beyond::EventLoop::Create(true);
     ASSERT_NE(loop, nullptr);
@@ -53,7 +53,7 @@ TEST(EventLoop, RunAsync)
     loop->Destroy();
 }
 
-TEST(EventLoop, Stop)
+TEST(EventLoop, Stop_Anytime)
 {
     auto loop = beyond::EventLoop::Create();
     ASSERT_NE(loop, nullptr);
@@ -74,7 +74,7 @@ TEST(EventLoop, Stop)
     loop->Destroy();
 }
 
-TEST(EventLoop, StopAsync)
+TEST(EventLoop, StopAsync_Anytime)
 {
     auto loop = beyond::EventLoop::Create(true);
     ASSERT_NE(loop, nullptr);
@@ -94,7 +94,7 @@ TEST(EventLoop, StopAsync)
     loop->Destroy();
 }
 
-TEST(EventLoop, AddEventHandler_Basic)
+TEST(EventLoop, AddEventHandler_Basic_Anytime)
 {
     auto loop = beyond::EventLoop::Create();
     ASSERT_NE(loop, nullptr);

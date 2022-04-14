@@ -18,6 +18,8 @@ package com.samsung.android.beyond.authenticator;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.samsung.android.beyond.EventListener;
 import com.samsung.android.beyond.EventObject;
 import com.samsung.android.beyond.NativeInstance;
@@ -34,58 +36,106 @@ public class Authenticator extends NativeInstance {
     private EventListener eventListener;
     private static final String TAG = "BEYOND_ANDROID_AUTH";
 
-    public Authenticator(String[] arguments) {
-        registerNativeInstance(create(arguments), (Long instance) -> destroy(instance));
-        Log.d(TAG, "Authenticator created");
-        eventListener = null;
-    }
-
-    public void setEventListener(EventListener eventListener) {
-        this.eventListener = eventListener;
-        if (this.setEventListener(instance, eventListener != null) < 0) {
-            // TODO: throw an exception
+    public Authenticator(@NonNull String[] arguments) {
+        if (arguments.length == 0) {
+            throw new IllegalArgumentException("Arguments are invalid.");
         }
+
+        long nativeInstance = create(arguments);
+        if (nativeInstance == 0L) {
+            throw new RuntimeException("The native instance of Authenticator is not created successfully.");
+        }
+        registerNativeInstance(nativeInstance, (Long instance) -> destroy(instance));
+        Log.d(TAG, "Authenticator created");
     }
 
-    public int configure(char type, String jsonString) {
-        return this.configure(instance, type, jsonString);
+    public boolean setEventListener(@NonNull EventListener eventListener) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        this.eventListener = eventListener;
+        if (setEventListener(instance, eventListener) < 0) {
+            Log.e(TAG, "Fail to set the given event listener.");
+            return false;     // TODO: Change as an exception
+        }
+
+        return true;
     }
 
-    public int configure(char type, Object obj) {
+    public boolean configure(@NonNull char type, @NonNull String jsonString) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        if (Character.isDefined(type) == false) {
+            Log.e(TAG, "Arguments are invalid.");
+            return false;
+        }
+
+        return configure(instance, type, jsonString) == 0 ? true : false;
+    }
+
+    public boolean configure(@NonNull char type, @NonNull Object obj) {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        if (Character.isDefined(type) == false) {
+            Log.e(TAG, "Arguments are invalid.");
+            return false;
+        }
+
         if (type == ConfigType.CONTEXT_ANDROID) {
             if (obj.getClass().getName().equals("android.app.Application") == true) {
-                return this.configure(instance, type, obj);
+                return configure(instance, type, obj) == 0 ? true : false;
             }
 
-            // TODO:
-            // The error code should be declared or the function should generate a proper exception
-            return -22;
+            // TODO: the function can generate a proper exception
+            return false;
         }
 
         if (type == ConfigType.JSON) {
-            // TODO:
-            // The error code should be declared or the function should generate a proper exception
-            return -22;
+            // TODO: the function can generate a proper exception
+            return false;
         }
 
         try {
             NativeInstance nativeInstance = (NativeInstance)obj;
-            return this.configure(instance, type, nativeInstance.getNativeInstance());
+            return configure(instance, type, nativeInstance.getNativeInstance()) == 0 ? true : false;
         } catch (ClassCastException e) {
-            return this.configure(instance, type, obj);
+            return configure(instance, type, obj) == 0 ? true : false;
         }
     }
 
-    public int deactivate() {
-        return this.deactivate(instance);
+    public boolean deactivate() {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        return deactivate(instance) == 0 ? true : false;
     }
 
-    public int activate() {
-        return this.activate(instance);
+    public boolean activate() {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        return activate(instance) == 0 ? true: false;
     }
 
-    public int prepare() {
-        return this.prepare(instance);
+    public boolean prepare() {
+        if (instance == 0L) {
+            Log.e(TAG, "Instance is invalid.");
+            return false;
+        }
+
+        return this.prepare(instance) == 0 ? true: false;
     }
 
     private static native void initialize();
@@ -103,5 +153,5 @@ public class Authenticator extends NativeInstance {
     private native int deactivate(long instance);
     private native int activate(long instance);
     private native int prepare(long instance);
-    private native int setEventListener(long instance, boolean flag);
+    private native int setEventListener(long instance, EventListener eventListener);
 }

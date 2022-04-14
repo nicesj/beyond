@@ -75,3 +75,68 @@ int JNIHelper::CallVoidMethod(JNIEnv *env, jobject obj, const char *methodName, 
 
     return 0;
 }
+
+jclass JNIHelper::FindClass(JNIEnv *env, const char *name)
+{
+    jclass ret = env->FindClass(name);
+    if (ret == nullptr) {
+        ErrPrint("jclass (%s) is null.", name);
+        JNIHelper::checkEnvException(env);
+    }
+
+    return ret;
+}
+
+jmethodID JNIHelper::GetMethodID(JNIEnv *env, jclass clazz, const char *name, const char *signature)
+{
+    jmethodID ret = env->GetMethodID(clazz, name, signature);
+    if (ret == nullptr) {
+        ErrPrint("jmethod (%s, %s) is null.", name, signature);
+        JNIHelper::checkEnvException(env);
+    }
+
+    return ret;
+}
+
+void JNIHelper::checkEnvException(JNIEnv *env)
+{
+    if (env->ExceptionOccurred()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        throw std::exception();
+    }
+}
+
+int JNIHelper::ExecuteWithEnv(JavaVM *jvm, const std::function<int(JNIEnv *, void *)> &callback, void *data)
+{
+    if (jvm == nullptr) {
+        ErrPrint("Invalid arguments, jvm(%p)", jvm);
+        return -EINVAL;
+    }
+
+    JNIEnv *env = nullptr;
+
+    int JNIStatus = jvm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_4);
+    if (JNIStatus == JNI_EDETACHED) {
+        if (jvm->AttachCurrentThread(&env, nullptr) != 0) {
+            ErrPrint("Failed to attach current thread");
+            return -EFAULT;
+        }
+    } else if (JNIStatus == JNI_EVERSION) {
+        ErrPrint("GetEnv: Unsupported version");
+        return -ENOTSUP;
+    }
+
+    if (env == nullptr) {
+        ErrPrint("Failed to get the environment object");
+        return -EFAULT;
+    }
+
+    int ret = callback(env, data);
+
+    if (JNIStatus == JNI_EDETACHED) {
+        jvm->DetachCurrentThread();
+    }
+
+    return ret;
+}

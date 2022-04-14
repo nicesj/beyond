@@ -23,13 +23,14 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.samsung.android.beyond.discovery.Discovery;
 import com.samsung.android.beyond.module.discovery.DNSSD.DNSSDModule;
-import com.samsung.android.beyond.ConfigType;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class DiscoveryActivationUnitTest {
     Context context = ApplicationProvider.getApplicationContext();
@@ -44,12 +45,11 @@ public class DiscoveryActivationUnitTest {
     @Test
     public void testActivateServer() {
         String[] args_server = { DNSSDModule.NAME, DNSSDModule.ARGUMENT_SERVER };
-        try (Discovery server = new Discovery(args_server)) {
+        try (Discovery server = new Discovery(context, args_server)) {
             assertNotNull(server);
-            int ret = server.configure(ConfigType.CONTEXT_ANDROID, context);
-            assertEquals(0, ret);
-            ret = server.activate();
-            assertEquals(0, ret);
+
+            assertTrue(server.activate());
+
             server.deactivate();
         }
     }
@@ -57,31 +57,32 @@ public class DiscoveryActivationUnitTest {
     @Test
     public void testActivateClient() {
         String[] args_client = { DNSSDModule.NAME };
-        try (Discovery client = new Discovery(args_client)) {
+        try (Discovery client = new Discovery(context, args_client)) {
             assertNotNull(client);
-            int ret = client.configure(ConfigType.CONTEXT_ANDROID, context);
-            assertEquals(0, ret);
-            ret = client.activate();
-            assertEquals(0, ret);
+
+            assertTrue(client.activate());
+
             client.deactivate();
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testActivateAfterClosed() {
         String[] args_client = { DNSSDModule.NAME };
-        Discovery client = new Discovery(args_client);
+        Discovery client = new Discovery(context, args_client);
         assertNotNull(client);
         client.close();
-        client.activate();
+
+        assertFalse(client.activate());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testDeactivateAfterClosed() {
         String[] args_client = { DNSSDModule.NAME };
-        Discovery client = new Discovery(args_client);
+        Discovery client = new Discovery(context, args_client);
         assertNotNull(client);
         client.close();
-        client.deactivate();
+
+        assertFalse(client.deactivate());
     }
 }

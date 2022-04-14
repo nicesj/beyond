@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.samsung.android.beyond;
+package com.samsung.android.beyond.AuthenticatorUnitTest;
 
 import android.content.Context;
 import android.os.Looper;
@@ -22,6 +22,7 @@ import android.os.Looper;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.samsung.android.beyond.ConfigType;
 import com.samsung.android.beyond.authenticator.Authenticator;
 import com.samsung.android.beyond.module.authenticator.SSL.SSLModule;
 
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static android.os.Looper.myLooper;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(AndroidJUnit4.class)
 public class AuthenticatorUnitTest {
@@ -49,7 +51,7 @@ public class AuthenticatorUnitTest {
     public void testPositiveCreate()
     {
         String[] args = {
-                SSLModule.NAME
+            SSLModule.NAME
         };
         Authenticator auth = new Authenticator(args);
         assertNotNull(auth);
@@ -60,12 +62,13 @@ public class AuthenticatorUnitTest {
     public void testPositiveConfigure()
     {
         String[] args = {
-                SSLModule.NAME
+            SSLModule.NAME
         };
         Authenticator auth = new Authenticator(args);
         assertNotNull(auth);
-        int ret = auth.configure(ConfigType.JSON, "{'hello':'world'}");
-        assertEquals(ret, -22);
+
+        assertTrue(auth.configure(ConfigType.JSON, "{\"hello\":\"world\"}"));
+
         auth.close();
     }
 
@@ -73,17 +76,15 @@ public class AuthenticatorUnitTest {
     public void testPositivePrepare()
     {
         String[] args = {
-                SSLModule.NAME,
+            SSLModule.NAME,
         };
         Authenticator auth = new Authenticator(args);
         assertNotNull(auth);
-
         auth.activate();
 
         auth.prepare();
 
         auth.deactivate();
-
         auth.close();
     }
 
@@ -91,7 +92,7 @@ public class AuthenticatorUnitTest {
     public void testPositiveDestructor()
     {
         String[] args = {
-                SSLModule.NAME,
+            SSLModule.NAME,
         };
 
         for (int i = 0; i < 10; i++) {
@@ -109,46 +110,34 @@ public class AuthenticatorUnitTest {
 
             }
         }
-
-
     }
 
     @Test
     public void testPositivePrepareCA()
     {
-        int ret;
         String[] args = {
-                SSLModule.NAME,
+            SSLModule.NAME,
         };
 
         Authenticator auth;
         auth = new Authenticator(args);
         assertNotNull(auth);
-        ret = auth.configure(ConfigType.JSON, "{\"ssl\": {\"bits\":-1,\"days\":365,\"serial\": 1,\"enable_base64\": 1,\"is_ca\": 1}}");
-        assertEquals(ret, 0);
-        ret = auth.activate();
-        assertEquals(ret, 0);
-        ret = auth.prepare();
-        assertEquals(ret, 0);
+        assertTrue(auth.configure(ConfigType.JSON, "{\"ssl\": {\"bits\":-1,\"days\":365,\"serial\": 1,\"enable_base64\": 1,\"is_ca\": 1}}"));
+        assertTrue(auth.activate());
+        assertTrue(auth.prepare());
 
         Authenticator authEE;
         authEE = new Authenticator(args);
         assertNotNull(authEE);
-        ret = authEE.configure(ConfigType.AUTHENTICATOR, auth);
-        assertEquals(ret, 0);
-        ret = authEE.configure(ConfigType.JSON, "{\"ssl\": {\"bits\":-1,\"days\":365,\"serial\": 1,\"enable_base64\": 1,\"is_ca\": 0}}");
-        assertEquals(ret, 0);
-        ret = authEE.activate();
-        assertEquals(ret, 0);
-        ret = authEE.prepare();
-        assertEquals(ret, 0);
+        assertTrue(authEE.configure(ConfigType.AUTHENTICATOR, auth));
+        assertTrue(authEE.configure(ConfigType.JSON, "{\"ssl\": {\"bits\":-1,\"days\":365,\"serial\": 1,\"enable_base64\": 1,\"is_ca\": 0}}"));
+        assertTrue(authEE.activate());
+        assertTrue(authEE.prepare());
 
-        ret = authEE.deactivate();
-        assertEquals(ret, 0);
+        assertTrue(authEE.deactivate());
         authEE.close();
 
-        ret = auth.deactivate();
-        assertEquals(ret, 0);
+        assertTrue(auth.deactivate());
         auth.close();
     }
 
@@ -158,8 +147,8 @@ public class AuthenticatorUnitTest {
         Looper.prepare();
 
         String[] args = {
-                SSLModule.NAME,
-                SSLModule.ARGUMENT_ASYNC_MODE,
+            SSLModule.NAME,
+            SSLModule.ARGUMENT_ASYNC_MODE,
         };
         Authenticator auth = new Authenticator(args);
         assertNotNull(auth);

@@ -37,6 +37,11 @@ private:
     virtual ~DiscoveryNativeInterface(void);
 
 private:
+    static void initializeEventObject(JNIEnv *env, jclass klass);
+    static void initializeInfo(JNIEnv *env, jclass klass);
+    jobject NewEventObject(JNIEnv *env, void *eventData);
+
+private:
     static void Java_com_samsung_android_beyond_discovery_Discovery_initialize(JNIEnv *env, jclass klass);
     static jlong Java_com_samsung_android_beyond_discovery_Discovery_create(JNIEnv *env, jobject thiz, jobjectArray args);
     static void Java_com_samsung_android_beyond_discovery_Discovery_destroy(JNIEnv *env, jclass klass, jlong instance);
@@ -47,7 +52,7 @@ private:
     static jint Java_com_samsung_android_beyond_discovery_Discovery_setItem(JNIEnv *env, jobject thiz, jlong instance, jstring key, jbyteArray value);
     static jint Java_com_samsung_android_beyond_discovery_Discovery_removeItem(JNIEnv *env, jobject thiz, jlong instance, jstring key);
     static jint Java_com_samsung_android_beyond_discovery_Discovery_configure(JNIEnv *env, jobject thiz, jlong inst, jchar type, jobject obj);
-    static jint Java_com_samsung_android_beyond_discovery_Discovery_setEventListener(JNIEnv *env, jobject thiz, jlong instance, jboolean flag);
+    static jint Java_com_samsung_android_beyond_discovery_Discovery_setEventListener(JNIEnv *env, jobject thiz, jlong instance, jobject listener);
 
 private:
     static int Discovery_eventHandler(int fd, int events, void *data);
@@ -60,18 +65,28 @@ private: // JNI Cache
         jfieldID eventData;
     };
 
+    struct Info {
+        jclass klass;
+        jmethodID constructor;
+        jfieldID name;
+        jfieldID host;
+        jfieldID port;
+        jfieldID uuid;
+    };
+
 private: // JNI Cache
     static EventObject eventObject;
-    static jfieldID eventListener;
+    static Info infoObject;
 
 private:
-    int InvokeEventListener(JNIEnv *env, jobject thiz, int eventType, void *eventData);
+    int InvokeEventListener(JNIEnv *env, int eventType, void *eventData);
+    int AttachEventLoop(void);
 
 private:
     beyond::Discovery *discovery;
     ALooper *looper;
     JavaVM *jvm;
-    jobject thiz;
+    jobject listener;
 };
 
 #endif // __BEYOND_ANDROID_DISCOVERY_JNI_H__

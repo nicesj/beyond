@@ -18,17 +18,19 @@ package com.samsung.android.beyond.inference;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 public class InferenceModuleFactory {
 
-    public static InferenceHandler createHandler(InferenceMode inferenceMode) {
+    public static InferenceHandler createHandler(@NonNull InferenceMode inferenceMode) {
         return new InferenceHandler(inferenceMode);
     }
 
-    public static Peer createPeerServer(Context context, String peerType) {
+    public static Peer createPeerServer(@NonNull Context context, @NonNull String peerType) {
         return new Peer(context, peerType, NodeType.SERVER);
     }
 
-    public static Peer createPeerClient(Context context, String peerType) {
+    public static Peer createPeerClient(@NonNull Context context, @NonNull String peerType) {
         return new Peer(context, peerType, NodeType.CLIENT);
     }
 }

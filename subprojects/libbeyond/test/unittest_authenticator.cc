@@ -128,7 +128,7 @@ static beyond_authenticator_ssl_config_ssl sslConfig = {
     .alternative_name = "127.0.0.1",
 };
 
-TEST(Authenticator, PositiveCreate)
+TEST(Authenticator, PositiveCreate_Anytime)
 {
     auto authenticator = beyond::Authenticator::Create(&arg);
     ASSERT_NE(authenticator, nullptr);
@@ -136,7 +136,7 @@ TEST(Authenticator, PositiveCreate)
     authenticator->Destroy();
 }
 
-TEST(Authenticator, PositiveDestroy)
+TEST(Authenticator, PositiveDestroy_Anytime)
 {
     auto authenticator = beyond::Authenticator::Create(&arg);
     ASSERT_NE(authenticator, nullptr);
@@ -144,18 +144,7 @@ TEST(Authenticator, PositiveDestroy)
     authenticator->Destroy();
 }
 
-TEST(Authenticator, PositiveConfigure_null)
-{
-    auto authenticator = beyond::Authenticator::Create(&arg);
-    ASSERT_NE(authenticator, nullptr);
-
-    auto ret = authenticator->Configure(nullptr);
-    EXPECT_EQ(ret, 0);
-
-    authenticator->Destroy();
-}
-
-TEST(Authenticator, PositiveActivate)
+TEST(Authenticator, PositiveConfigure_null_Anytime)
 {
     auto authenticator = beyond::Authenticator::Create(&arg);
     ASSERT_NE(authenticator, nullptr);
@@ -163,16 +152,10 @@ TEST(Authenticator, PositiveActivate)
     auto ret = authenticator->Configure(nullptr);
     EXPECT_EQ(ret, 0);
 
-    ret = authenticator->Activate();
-    EXPECT_EQ(ret, 0);
-
-    ret = authenticator->Deactivate();
-    EXPECT_EQ(ret, 0);
-
     authenticator->Destroy();
 }
 
-TEST(Authenticator, PositiveDeactivate)
+TEST(Authenticator, PositiveActivate_Anytime)
 {
     auto authenticator = beyond::Authenticator::Create(&arg);
     ASSERT_NE(authenticator, nullptr);
@@ -189,7 +172,24 @@ TEST(Authenticator, PositiveDeactivate)
     authenticator->Destroy();
 }
 
-TEST(Authenticator, PositiveGetHandle)
+TEST(Authenticator, PositiveDeactivate_Anytime)
+{
+    auto authenticator = beyond::Authenticator::Create(&arg);
+    ASSERT_NE(authenticator, nullptr);
+
+    auto ret = authenticator->Configure(nullptr);
+    EXPECT_EQ(ret, 0);
+
+    ret = authenticator->Activate();
+    EXPECT_EQ(ret, 0);
+
+    ret = authenticator->Deactivate();
+    EXPECT_EQ(ret, 0);
+
+    authenticator->Destroy();
+}
+
+TEST(Authenticator, PositiveGetHandle_Anytime)
 {
     auto authenticator = beyond::Authenticator::Create(&arg);
     ASSERT_NE(authenticator, nullptr);

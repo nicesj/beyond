@@ -18,6 +18,8 @@ package com.samsung.android.beyond;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.lang.ref.*;
 import java.lang.Thread;
 import java.util.HashMap;
@@ -62,7 +64,7 @@ public class NativeResourceManager {
         manager.start();
     }
 
-    public static void register(Object object, Destroyable info) {
+    static void register(@NonNull Object object, @NonNull Destroyable info) {
         instance.referenceMap.put(new PhantomReference<>(object, instance.queue), info);
     }
 }

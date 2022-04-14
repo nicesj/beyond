@@ -10,11 +10,13 @@ import java.util.List;
 
 import static com.samsung.android.beyond.inference.Option.TAG;
 
+import androidx.annotation.NonNull;
+
 public class TensorHandler {
 
     private final InferenceHandler inferenceHandler;
 
-    public TensorHandler(InferenceHandler inferenceHandler) {
+    public TensorHandler(@NonNull InferenceHandler inferenceHandler) {
         this.inferenceHandler = inferenceHandler;
     }
 
@@ -53,7 +55,7 @@ public class TensorHandler {
         return tensorInfoArray;
     }
 
-    private boolean organizeTensorsInfo(TensorInfo[] tensorInfoArray, List<Integer> dataTypeValues, List<List<Integer>> dimensionsList) {
+    private boolean organizeTensorsInfo(@NonNull TensorInfo[] tensorInfoArray, @NonNull List<Integer> dataTypeValues, @NonNull List<List<Integer>> dimensionsList) {
         if (dataTypeValues.size() != dimensionsList.size()) {
             Log.e(TAG, "The number of tensors is abnormal.");
             return false;
@@ -80,46 +82,17 @@ public class TensorHandler {
         return true;
     }
 
-    public TensorSet allocateTensorSet(TensorInfo[] tensorInfoArray) {
-        List<Integer> dataTypeValues = new ArrayList<>();
-        List<List<Integer>> dimensionsList = new ArrayList<>();
-        int[] dataSizes = new int[tensorInfoArray.length];
-        if (transformTensorsInfo(tensorInfoArray, dataTypeValues, dataSizes, dimensionsList) == false) {
-            Log.e(TAG, "Fail to organize the information of tensors.");
-            return null;
-        }
-
+    public TensorSet allocateTensorSet(@NonNull TensorInfo[] tensorInfoArray) {
         ByteBuffer[] bufferArray = new ByteBuffer[tensorInfoArray.length];
-        long tensorsInstance = allocateTensors(inferenceHandler.getNativeInstance(), dataTypeValues, dataSizes, dimensionsList, tensorInfoArray.length, bufferArray);
-        if (tensorsInstance == 0) {
-            Log.e(TAG, "Fail to allocate the buffers of tensors.");
-            return null;
+        long tensorsInstance = allocateTensors(inferenceHandler.getNativeInstance(), tensorInfoArray, tensorInfoArray.length, bufferArray);
+        if (tensorsInstance == 0L) {
+            throw new RuntimeException("Fail to allocate the buffers of tensors.");
         }
 
         return organizeTensorSet(tensorsInstance, tensorInfoArray, bufferArray);
     }
 
-    private boolean transformTensorsInfo(TensorInfo[] tensorInfoArray, List<Integer> dataTypeValues, int[] dataSizes, List<List<Integer>> dimensionsList) {
-        if (tensorInfoArray.length == 0) {
-            Log.e(TAG, "The given tensorInfoArray is empty.");
-            return false;
-        }
-
-        for (int i = 0; i < tensorInfoArray.length; i++) {
-            TensorInfo tensorInfo = tensorInfoArray[i];
-            dataTypeValues.add(tensorInfo.getDataType().getTypeValue());
-            dataSizes[i] = tensorInfo.getDataByteSize();
-            List<Integer> dimensions = new ArrayList<>();
-            for (int j = 0; j < tensorInfo.getRank(); j++) {
-                dimensions.add(tensorInfo.getDimensions()[j]);
-            }
-            dimensionsList.add(dimensions);
-        }
-
-        return true;
-    }
-
-    private TensorSet organizeTensorSet(long tensorsInstance, TensorInfo[] tensorInfoArray, ByteBuffer[] bufferArray) {
+    private TensorSet organizeTensorSet(@NonNull long tensorsInstance, @NonNull TensorInfo[] tensorInfoArray, @NonNull ByteBuffer[] bufferArray) {
         Tensor[] tensorArray = new Tensor[tensorInfoArray.length];
         for (int i = 0; i < tensorInfoArray.length; i++) {
             TensorInfo tensorInfo = tensorInfoArray[i];
@@ -139,25 +112,35 @@ public class TensorHandler {
         return tensorSet;
     }
 
-    public TensorSet getOutput(TensorInfo[] tensorInfoArray) {
+    public TensorSet getOutput(@NonNull TensorInfo[] tensorInfoArray) {
         ByteBuffer[] bufferArray = new ByteBuffer[tensorInfoArray.length];
-        long tensorsInstance = getOutput(inferenceHandler.getNativeInstance(), bufferArray, tensorInfoArray.length);
+        long tensorsInstance = getOutput(inferenceHandler.getNativeInstance(), bufferArray);
+        if (tensorsInstance == 0L) {
+            throw new RuntimeException("Fail to get output tensors.");
+        }
 
         return organizeTensorSet(tensorsInstance, tensorInfoArray, bufferArray);
     }
 
-    public int freeTensors(TensorSet tensorSet) {
+    public void freeTensors(@NonNull TensorSet tensorSet) {
         freeTensors(inferenceHandler.getNativeInstance(), tensorSet.getTensorsInstance(), tensorSet.getTensors().length);
-        return 0;
+    }
+
+    public TensorSet createTensorSet(@NonNull long tensorsInstance, @NonNull TensorInfo[] tensorInfoArray, @NonNull ByteBuffer[] bufferArray) {
+        if (tensorInfoArray.length == 0 || bufferArray.length == 0) {
+            throw new IllegalArgumentException("Arguments are invalid.");
+        }
+
+        return organizeTensorSet(tensorsInstance, tensorInfoArray, bufferArray);
     }
 
     private native boolean getInputTensorsInfo(long inferenceHandle, List<Integer> dataTypeValue, List<List<Integer>> dimensions);
 
     private native boolean getOutputTensorsInfo(long inferenceHandle, List<Integer> dataTypeValue, List<List<Integer>> dimensions);
 
-    private native long allocateTensors(long inferenceHandle, List<Integer> dataTypeValue, int[] dataSizes, List<List<Integer>> dimensions, int tensorsNumber, ByteBuffer[] bufferArray);
+    private native long allocateTensors(long inferenceHandle, TensorInfo[] tensorInfoArray, int numberOfTensors, ByteBuffer[] bufferArray);
 
-    private native long getOutput(long inferenceHandle, ByteBuffer[] bufferArray, int numberOfTensors);
+    private native long getOutput(long inferenceHandle, ByteBuffer[] bufferArray);
 
     private native void freeTensors(long inferenceHandle, long tensorInstance, int numberOfTensors);
 }

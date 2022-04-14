@@ -1,4 +1,20 @@
-package com.samsung.android.beyond.DataUnitTest;
+/*
+ * Copyright (c) 2021 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.samsung.android.beyond.InferenceUnitTest;
 
 import android.content.Context;
 import android.util.Log;
@@ -7,12 +23,14 @@ import com.samsung.android.beyond.inference.InferenceHandler;
 import com.samsung.android.beyond.inference.InferenceMode;
 import com.samsung.android.beyond.inference.InferenceModuleFactory;
 import com.samsung.android.beyond.inference.Peer;
+import com.samsung.android.beyond.inference.PeerInfo;
 import com.samsung.android.beyond.inference.tensor.Tensor;
 import com.samsung.android.beyond.inference.tensor.TensorHandler;
 import com.samsung.android.beyond.inference.tensor.TensorInfo;
 import com.samsung.android.beyond.inference.tensor.TensorSet;
 import com.samsung.android.beyond.module.peer.NN.NNModule;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,7 +53,11 @@ public class TensorHandlerUnitTest {
 
     private TensorHandler tensorHandler = null;
 
+    private Peer serverPeer = null;
+
     private Peer inferencePeer = null;
+
+    private TensorSet inputTensorSet = null;
 
     private static String uint8ModelAbsolutePath = null;
 
@@ -57,14 +79,16 @@ public class TensorHandlerUnitTest {
         inferenceHandler = InferenceModuleFactory.createHandler(InferenceMode.REMOTE);
         assertNotNull(inferenceHandler);
 
-        Peer serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
         assertNotNull(serverPeer);
-        assertTrue(serverPeer.setIpPort());
+        assertTrue(serverPeer.setInfo());
         assertTrue(serverPeer.activateControlChannel());
 
         inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
         assertNotNull(inferencePeer);
-        assertTrue(inferencePeer.setIpPort(TEST_SERVER_IP, TEST_SERVER_PORT));
+
+        assertTrue(inferencePeer.setInfo(new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT)));
+
         assertTrue(inferenceHandler.addInferencePeer(inferencePeer));   // Cover activateControlChannel()
 
         tensorHandler = new TensorHandler(inferenceHandler);
@@ -88,12 +112,6 @@ public class TensorHandlerUnitTest {
         for (TensorInfo tensorInfo : outputTensorsInfo) {
             assertArrayEquals(tensorInfo.getDimensions(), MOBILENET_OUTPUT_TENSOR_DIMENSIONS);
         }
-
-        destroyModules();
-    }
-
-    private void destroyModules() {
-        assertTrue(inferencePeer.deactivateControlChannel());
     }
 
     @Test
@@ -128,8 +146,6 @@ public class TensorHandlerUnitTest {
         for (Tensor tensor : outputTensors) {
             assertArrayEquals(MOBILENET_OUTPUT_TENSOR_DIMENSIONS, tensor.getTensorInfo().getDimensions());
         }
-
-        destroyModules();
     }
 
     @Test
@@ -142,7 +158,7 @@ public class TensorHandlerUnitTest {
         for (TensorInfo tensorInfo : inputTensorsInfo) {
             assertArrayEquals(MOBILENET_INPUT_TENSOR_DIMENSIONS, tensorInfo.getDimensions());
         }
-        TensorSet inputTensorSet = tensorHandler.allocateTensorSet(inputTensorsInfo);
+        inputTensorSet = tensorHandler.allocateTensorSet(inputTensorsInfo);
         assertNotNull(inputTensorSet);
         Tensor[] inputTensors = inputTensorSet.getTensors();
         assertEquals(MOBILENET_INPUT_TENSOR_NUMBER, inputTensors.length);
@@ -155,8 +171,6 @@ public class TensorHandlerUnitTest {
             assertNotNull(byteBuffer);
             assertArrayEquals(TEST_DATA_UINT8.array(), byteBuffer.array());
         }
-
-        destroyModules();
     }
 
     @Test
@@ -182,8 +196,6 @@ public class TensorHandlerUnitTest {
             assertNotNull(floatBuffer);
             assertArrayEquals(TEST_DATA_FLOAT32.array(), floatBuffer.array(), 0);
         }
-
-        destroyModules();
     }
 
     @Test
@@ -218,11 +230,9 @@ public class TensorHandlerUnitTest {
         TensorSet outputTensors = tensorHandler.getOutput(outputTensorsProperties);
         assertNotNull(outputTensors);
         assertTrue(isOrange(outputTensors.getTensors()));
-
-        destroyModules();
     }
 
-    private boolean isOrange(Tensor[] tensors) {
+    public static boolean isOrange(Tensor[] tensors) {
         for (Tensor tensor : tensors) {
             int dataSize = tensor.getTensorInfo().getDataByteSize();
             int maxIndex = -1;
@@ -242,5 +252,18 @@ public class TensorHandlerUnitTest {
             }
         }
         return true;
+    }
+
+    @After
+    public void destroyInferenceModules() {
+        assertTrue(inferencePeer.deactivateControlChannel());
+        assertTrue(serverPeer.deactivateControlChannel());
+
+        assertTrue(inferenceHandler.removeInferencePeer(inferencePeer));
+
+        serverPeer.close();
+        inferencePeer.close();
+        inferenceHandler.close();
+        Log.i(TAG, "Inference modules are destroyed!!");
     }
 }

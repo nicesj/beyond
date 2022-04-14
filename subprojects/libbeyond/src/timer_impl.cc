@@ -75,7 +75,7 @@ void Timer::impl::Destroy(void)
 
 Timer::impl::impl(int fd)
     : Timer(fd)
-    , registeredTime(0.0f)
+    , registeredTime(0.0)
 {
 }
 
