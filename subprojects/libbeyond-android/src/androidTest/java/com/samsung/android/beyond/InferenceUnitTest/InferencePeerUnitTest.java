@@ -24,7 +24,6 @@ import com.samsung.android.beyond.inference.InferenceModuleFactory;
 import com.samsung.android.beyond.inference.Peer;
 import com.samsung.android.beyond.inference.PeerInfo;
 import com.samsung.android.beyond.module.authenticator.SSL.SSLModule;
-import com.samsung.android.beyond.module.peer.NN.NNModule;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -50,7 +49,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testCreatePeerServer() {
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
         assertNotNull(serverPeer);
 
         serverPeer.close();
@@ -58,7 +57,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testPeerServerSetInfo() {
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
 
         assertEquals(true, serverPeer.setInfo());
 
@@ -67,7 +66,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testPeerServerGetInfo() {
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
         serverPeer.setInfo();
 
         PeerInfo info = serverPeer.getInfo();
@@ -80,7 +79,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testPeerServerActivateAndDeactivateControlChannel() {
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
         serverPeer.setInfo();
 
         assertEquals(true, serverPeer.activateControlChannel());
@@ -101,7 +100,7 @@ public class InferencePeerUnitTest {
         assertTrue(auth.activate());
         assertTrue(auth.prepare());
 
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
         assertNotNull(serverPeer);
 
         boolean status = serverPeer.configure(ConfigType.AUTHENTICATOR, auth);
@@ -117,7 +116,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testCreatePeerClient() {
-        inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
+        inferencePeer = InferenceModuleFactory.createPeerClient(context, "dummyModule");
 
         assertNotNull(inferencePeer);
 
@@ -126,7 +125,7 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testPeerClientSetInfo() {
-        inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
+        inferencePeer = InferenceModuleFactory.createPeerClient(context, "dummyModule");
         PeerInfo info = new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT);
         assertEquals(true, inferencePeer.setInfo(info));
 
@@ -135,11 +134,11 @@ public class InferencePeerUnitTest {
 
     @Test
     public void testPeerClientActivateAndDeactivateControlChannel() {
-        serverPeer = InferenceModuleFactory.createPeerServer(context, NNModule.NAME);
+        serverPeer = InferenceModuleFactory.createPeerServer(context, "dummyModule");
         serverPeer.setInfo();
         serverPeer.activateControlChannel();
 
-        inferencePeer = InferenceModuleFactory.createPeerClient(context, NNModule.NAME);
+        inferencePeer = InferenceModuleFactory.createPeerClient(context, "dummyModule");
         inferencePeer.setInfo(new PeerInfo(TEST_SERVER_IP, TEST_SERVER_PORT));
 
         assertEquals(true, inferencePeer.activateControlChannel());
