@@ -18,11 +18,6 @@
 #define _GNU_SOURCE
 #endif // !defined(_GNU_SOURCE)
 
-#if defined(__APPLE__)
-#define SOCK_CLOEXEC 0
-#define pipe2(a, b) pipe(a)
-#endif // __APPLE__
-
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -331,15 +326,79 @@ Inference::Runtime::impl::Async *Inference::Runtime::impl::Async::Create(Inferen
         return nullptr;
     }
 
-    if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, spfd) < 0) {
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, spfd) < 0) {
         ErrPrintCode(errno, "socketpair");
         delete async;
         async = nullptr;
         return nullptr;
     }
 
-    if (pipe2(pfd, O_CLOEXEC) < 0) {
-        ErrPrintCode(errno, "pipe2");
+    if (fcntl(spfd[0], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(spfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(spfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        delete async;
+        async = nullptr;
+        return nullptr;
+    }
+
+    if (fcntl(spfd[1], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(spfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(spfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        delete async;
+        async = nullptr;
+        return nullptr;
+    }
+
+    if (pipe(pfd) < 0) {
+        ErrPrintCode(errno, "pipe");
+        if (close(spfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(spfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        delete async;
+        async = nullptr;
+        return nullptr;
+    }
+
+    if (fcntl(pfd[0], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(spfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(spfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        delete async;
+        async = nullptr;
+        return nullptr;
+    }
+
+    if (fcntl(pfd[1], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
         if (close(spfd[0]) < 0) {
             ErrPrintCode(errno, "close");
         }

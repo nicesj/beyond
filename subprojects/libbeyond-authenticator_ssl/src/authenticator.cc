@@ -105,13 +105,47 @@ Authenticator *Authenticator::Create(bool enableAsync)
     impl->eventObject = nullptr;
     impl->asyncCtx.handlerObject = nullptr;
 
-    if (pipe2(pfd, O_CLOEXEC) < 0) {
-        ErrPrintCode(errno, "pipe2");
+    // NOTE:
+    // pipe2 is not portable,
+    // therefore, the pipe2 is replaced with a combination of the "pipe" and "fcntl"
+    if (pipe(pfd) < 0) {
+        ErrPrintCode(errno, "pipe");
 
         delete impl;
         impl = nullptr;
         return nullptr;
     }
+
+    if (fcntl(pfd[0], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        delete impl;
+        impl = nullptr;
+        return nullptr;
+    }
+
+    if (fcntl(pfd[1], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        delete impl;
+        impl = nullptr;
+        return nullptr;
+    }
+
 
     if (enableAsync == true) {
         impl->eventObject = Authenticator::EventObject::Create();
@@ -151,12 +185,71 @@ Authenticator *Authenticator::Create(bool enableAsync)
             Authenticator *impl = static_cast<Authenticator *>(data);
             impl->CommandCleanup(impl, nullptr);
             return;
-        },
-                                                 impl);
+        }, impl);
 
         int spfd[2]; // command
-        if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, spfd) < 0) {
+        if (socketpair(AF_UNIX, SOCK_STREAM, 0, spfd) < 0) {
             ErrPrintCode(errno, "socketpair");
+
+            impl->asyncCtx.eventLoop->Destroy();
+            impl->asyncCtx.eventLoop = nullptr;
+
+            impl->eventObject->Destroy();
+            impl->eventObject = nullptr;
+
+            if (close(pfd[0]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            if (close(pfd[1]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            delete impl;
+            impl = nullptr;
+            return nullptr;
+        }
+
+        if (fcntl(F_SETFD, spfd[0], FD_CLOEXEC) < 0) {
+            ErrPrintCode(errno, "fcntl");
+
+            if (close(spfd[0]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            if (close(spfd[1]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            impl->asyncCtx.eventLoop->Destroy();
+            impl->asyncCtx.eventLoop = nullptr;
+
+            impl->eventObject->Destroy();
+            impl->eventObject = nullptr;
+
+            if (close(pfd[0]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            if (close(pfd[1]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            delete impl;
+            impl = nullptr;
+            return nullptr;
+        }
+
+        if (fcntl(F_SETFD, spfd[1], FD_CLOEXEC) < 0) {
+            ErrPrintCode(errno, "fcntl");
+
+            if (close(spfd[0]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
+
+            if (close(spfd[1]) < 0) {
+                ErrPrintCode(errno, "close");
+            }
 
             impl->asyncCtx.eventLoop->Destroy();
             impl->asyncCtx.eventLoop = nullptr;

@@ -19,17 +19,78 @@
 
 DiscoveryClient::DiscoveryClient()
 {
-    int err = pipe2(eventPipe, O_CLOEXEC | O_NONBLOCK);
+    int err = pipe(eventPipe);
     if (err < 0) {
-        ErrPrintCode(errno, "pipe2");
-        throw std::runtime_error("pipe2() Fail");
+        ErrPrintCode(errno, "pipe");
+        throw std::runtime_error("pipe() Fail");
+    }
+
+    if (fcntl(eventPipe[0], F_SETFL, O_NONBLOCK) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(eventPipe[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        if (close(eventPipe[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        throw std::runtime_error("fcntl");
+    }
+
+    if (fcntl(eventPipe[1], F_SETFL, O_NONBLOCK) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(eventPipe[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        if (close(eventPipe[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        throw std::runtime_error("fcntl");
+    }
+
+    if (fcntl(eventPipe[0], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(eventPipe[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        if (close(eventPipe[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        throw std::runtime_error("fcntl");
+    }
+
+    if (fcntl(eventPipe[1], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+
+        if (close(eventPipe[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        if (close(eventPipe[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+
+        throw std::runtime_error("fcntl");
     }
 }
 
 DiscoveryClient::~DiscoveryClient()
 {
-    close(eventPipe[1]);
-    close(eventPipe[0]);
+    if (close(eventPipe[1]) < 0) {
+        ErrPrintCode(errno, "close");
+    }
+
+    if (close(eventPipe[0]) < 0) {
+        ErrPrintCode(errno, "close");
+    }
 }
 
 void DiscoveryClient::Destroy(void)

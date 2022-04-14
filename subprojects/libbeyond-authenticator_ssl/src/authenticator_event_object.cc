@@ -45,8 +45,30 @@ Authenticator::EventObject *Authenticator::EventObject::Create(void)
     int pfd[2];
 
     // pfd is going to be used for event system of co-inference remote type
-    if (pipe2(pfd, O_CLOEXEC) < 0) {
-        ErrPrintCode(errno, "pipe2");
+    if (pipe(pfd) < 0) {
+        ErrPrintCode(errno, "pipe");
+        return nullptr;
+    }
+
+    if (fcntl(F_SETFD, pfd[0], FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        return nullptr;
+    }
+
+    if (fcntl(F_SETFD, pfd[1], FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
         return nullptr;
     }
 

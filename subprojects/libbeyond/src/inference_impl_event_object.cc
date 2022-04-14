@@ -34,10 +34,6 @@
 #include "inference_impl_remote.h"
 #include "inference_impl_event_object.h"
 
-#if defined(__APPLE__)
-#define pipe2(a, b) pipe(a)
-#endif // __APPLE__
-
 namespace beyond {
 
 Inference::impl::remote::EventObject::EventObject(int fd)
@@ -52,8 +48,30 @@ Inference::impl::remote::EventObject *Inference::impl::remote::EventObject::Crea
     int pfd[2];
 
     // pfd is going to be used for event system of co-inference remote type
-    if (pipe2(pfd, O_CLOEXEC) < 0) {
-        ErrPrintCode(errno, "pipe2");
+    if (pipe(pfd) < 0) {
+        ErrPrintCode(errno, "pipe");
+        return nullptr;
+    }
+
+    if (fcntl(pfd[0], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        return nullptr;
+    }
+
+    if (fcntl(pfd[1], F_SETFD, FD_CLOEXEC) < 0) {
+        ErrPrintCode(errno, "fcntl");
+        if (close(pfd[0]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
+        if (close(pfd[1]) < 0) {
+            ErrPrintCode(errno, "close");
+        }
         return nullptr;
     }
 
